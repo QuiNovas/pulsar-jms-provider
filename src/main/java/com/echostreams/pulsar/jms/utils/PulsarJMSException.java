@@ -1,4 +1,4 @@
-package com.echostreams.pulsar.jms.util;
+package com.echostreams.pulsar.jms.utils;
 
 import javax.jms.JMSException;
 

@@ -1,11 +1,17 @@
 package com.echostreams.pulsar.jms.common;
 
+import com.echostreams.pulsar.jms.utils.PulsarJMSException;
+
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
+import javax.jms.Session;
+import java.lang.ref.WeakReference;
 import java.util.Enumeration;
 
 public abstract class AbstractMessage implements Message {
+
+    private transient WeakReference<AbstractSession> sessionRef; // Weak link to the parent session
 
     public AbstractMessage() {
         super();
@@ -227,9 +233,27 @@ public abstract class AbstractMessage implements Message {
 
     }
 
+    protected final AbstractSession getSession() throws JMSException
+    {
+        if (sessionRef == null)
+            throw new PulsarJMSException("Message has no associated session","CONSISTENCY");
+
+        AbstractSession session = sessionRef.get();
+        if (session == null)
+            throw new PulsarJMSException("Message session is no longer valid","CONSISTENCY");
+
+        return session;
+    }
+
     @Override
     public void acknowledge() throws JMSException {
+        AbstractSession session = getSession();
 
+        int acknowledgeMode = session.getAcknowledgeMode();
+        if (acknowledgeMode != Session.CLIENT_ACKNOWLEDGE)
+            return; // Ignore [JMS SPEC]
+
+        session.acknowledge();
     }
 
     @Override
