@@ -250,22 +250,15 @@ public abstract class AbstractConnection implements Connection {
 
     protected final void wakeUpLocalConsumers()
     {
-        try
+        List<AbstractSession> sessionsSnapshot = new ArrayList<>(sessions.size());
+        synchronized (sessions)
         {
-            List<AbstractSession> sessionsSnapshot = new ArrayList<>(sessions.size());
-            synchronized (sessions)
-            {
-                sessionsSnapshot.addAll(sessions.values());
-            }
-            for(int n=0;n<sessionsSnapshot.size();n++)
-            {
-                AbstractSession session = sessionsSnapshot.get(n);
-                session.wakeUpConsumers();
-            }
+            sessionsSnapshot.addAll(sessions.values());
         }
-        catch (JMSException e)
+        for(int n=0;n<sessionsSnapshot.size();n++)
         {
-            LOGGER.error("",e);
+            AbstractSession session = sessionsSnapshot.get(n);
+            //session.wakeUpConsumers();
         }
     }
 
@@ -282,7 +275,7 @@ public abstract class AbstractConnection implements Connection {
         for(int n=0;n<sessionsSnapshot.size();n++)
         {
             AbstractSession session = sessionsSnapshot.get(n);
-            session.waitForDeliverySync();
+            //session.waitForDeliverySync();
         }
     }
 
@@ -299,8 +292,8 @@ public abstract class AbstractConnection implements Connection {
      */
     protected final void registerSession( AbstractSession sessionToAdd )
     {
-        if (sessions.put(sessionToAdd.getId(),sessionToAdd) != null)
-            throw new IllegalArgumentException("Session "+sessionToAdd.getId()+" already exists");
+        //if (sessions.put(sessionToAdd.getId(),sessionToAdd) != null)
+          //  throw new IllegalArgumentException("Session "+sessionToAdd.getId()+" already exists");
     }
 
     /**
@@ -308,8 +301,8 @@ public abstract class AbstractConnection implements Connection {
      */
     public final void unregisterSession( AbstractSession sessionToRemove )
     {
-        if (sessions.remove(sessionToRemove.getId()) == null)
-            LOGGER.warn("Unknown session : "+sessionToRemove);
+        //if (sessions.remove(sessionToRemove.getId()) == null)
+          //  LOGGER.warn("Unknown session : "+sessionToRemove);
     }
 
     @Override
@@ -363,7 +356,7 @@ public abstract class AbstractConnection implements Connection {
             while (sessionsIterator.hasNext())
             {
                 AbstractSession session = sessionsIterator.next();
-                total += session.getConsumersCount();
+                //total += session.getConsumersCount();
             }
             return total;
         }
@@ -385,7 +378,7 @@ public abstract class AbstractConnection implements Connection {
             while (sessionsIterator.hasNext())
             {
                 AbstractSession session = sessionsIterator.next();
-                total += session.getProducersCount();
+                //total += session.getProducersCount();
             }
             return total;
         }
@@ -409,7 +402,7 @@ public abstract class AbstractConnection implements Connection {
                     AbstractSession session = sessionsIterator.next();
                     if (pos++ > 0)
                         sb.append(",");
-                    session.getEntitiesDescription(sb);
+                    //session.getEntitiesDescription(sb);
                 }
             }
         }

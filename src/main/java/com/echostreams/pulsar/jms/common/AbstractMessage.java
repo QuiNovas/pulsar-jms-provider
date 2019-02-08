@@ -8,10 +8,32 @@ import javax.jms.Message;
 import javax.jms.Session;
 import java.lang.ref.WeakReference;
 import java.util.Enumeration;
+import java.util.Map;
 
 public abstract class AbstractMessage implements Message {
 
+    // Persistent properties
+    private String id;
+    private String correlId;
+    private int priority;
+    private int deliveryMode;
+    private Destination destination;
+    private long expiration;
+    private boolean redelivered;
+    private Destination replyTo;
+    private long timestamp;
+    private String type;
+    private Map<String,Object> propertyMap;
+
+    // Serialization related
+    private int unserializationLevel;
+    private RawDataBuffer rawMessage;
+
+    // Volatile properties
+    private boolean propertiesAreReadOnly;
+    protected boolean bodyIsReadOnly;
     private transient WeakReference<AbstractSession> sessionRef; // Weak link to the parent session
+    private transient boolean internalCopy = false;
 
     public AbstractMessage() {
         super();
@@ -20,22 +42,25 @@ public abstract class AbstractMessage implements Message {
 
     @Override
     public String getJMSMessageID() throws JMSException {
-        return null;
+        return id != null ? "ID:"+id : null;
     }
 
     @Override
-    public void setJMSMessageID(String s) throws JMSException {
-
+    public void setJMSMessageID(String id) throws JMSException {
+        assertDeserializationLevel(MessageSerializationLevel.FULL);
+        this.id = id;
     }
 
     @Override
     public long getJMSTimestamp() throws JMSException {
-        return 0;
+        assertDeserializationLevel(MessageSerializationLevel.ALL_HEADERS);
+        return timestamp;
     }
 
     @Override
-    public void setJMSTimestamp(long l) throws JMSException {
-
+    public void setJMSTimestamp(long timestamp) throws JMSException {
+        assertDeserializationLevel(MessageSerializationLevel.FULL);
+        this.timestamp = timestamp;
     }
 
     @Override
@@ -49,13 +74,15 @@ public abstract class AbstractMessage implements Message {
     }
 
     @Override
-    public void setJMSCorrelationID(String s) throws JMSException {
-
+    public void setJMSCorrelationID(String correlationID) throws JMSException {
+        assertDeserializationLevel(MessageSerializationLevel.FULL);
+        this.correlId = correlationID;
     }
 
     @Override
     public String getJMSCorrelationID() throws JMSException {
-        return null;
+        assertDeserializationLevel(MessageSerializationLevel.ALL_HEADERS);
+        return correlId;
     }
 
     @Override
@@ -253,11 +280,20 @@ public abstract class AbstractMessage implements Message {
         if (acknowledgeMode != Session.CLIENT_ACKNOWLEDGE)
             return; // Ignore [JMS SPEC]
 
-        session.acknowledge();
+        //session.acknowledge();
     }
 
     @Override
     public void clearBody() throws JMSException {
 
+    }
+
+    protected final synchronized void assertDeserializationLevel( int targetLevel )
+    {
+        if (rawMessage == null)
+            return; // Not a serialized message or fully deserialized message
+
+        if (unserializationLevel < targetLevel)
+            throw new IllegalStateException("Message is not deserialized (level="+unserializationLevel+")");
     }
 }

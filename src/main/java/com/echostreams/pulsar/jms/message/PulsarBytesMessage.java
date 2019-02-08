@@ -4,16 +4,28 @@ import com.echostreams.pulsar.jms.common.AbstractMessage;
 
 import javax.jms.BytesMessage;
 import javax.jms.JMSException;
+import javax.jms.MessageNotReadableException;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 
 public class PulsarBytesMessage extends AbstractMessage implements BytesMessage {
 
-    public PulsarBytesMessage() {
-        super();
-    }
+    private byte[] body;
+    private transient DataInputStream input;
+    private transient DataOutputStream output;
+    private transient ByteArrayInputStream inputBuf;
+    private transient ByteArrayOutputStream outputBuf;
+
+    public PulsarBytesMessage() { super(); }
 
     @Override
     public long getBodyLength() throws JMSException {
-        return 0;
+        if (!bodyIsReadOnly)
+            throw new MessageNotReadableException("Message body is write-only");
+
+        return body != null ? body.length : 0;
     }
 
     @Override

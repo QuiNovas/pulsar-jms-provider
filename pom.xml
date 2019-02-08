@@ -64,16 +64,26 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.pulsar</groupId>
+            <artifactId>pulsar-client-auth-athenz</artifactId>
+            <version>${pulsar.client.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
         </dependency>
-
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
-            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>oracle</groupId>
+            <artifactId>aqapi13</artifactId>
+            <version>9i</version>
         </dependency>
 
     </dependencies>

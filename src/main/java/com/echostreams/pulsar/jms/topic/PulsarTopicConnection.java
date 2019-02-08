@@ -5,6 +5,11 @@ import com.echostreams.pulsar.jms.config.PulsarConnection;
 import javax.jms.*;
 
 public class PulsarTopicConnection extends PulsarConnection implements TopicConnection {
+
+    public PulsarTopicConnection(String clientID) {
+        super(clientID);
+    }
+
     @Override
     public TopicSession createTopicSession(boolean b, int i) throws JMSException {
         return null;

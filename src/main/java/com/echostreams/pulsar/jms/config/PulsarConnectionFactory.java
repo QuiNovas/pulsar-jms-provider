@@ -1,15 +1,22 @@
 package com.echostreams.pulsar.jms.config;
 
+import com.echostreams.pulsar.jms.auth.AthenzAuthParams;
+import com.echostreams.pulsar.jms.auth.TLSAuthParams;
 import com.echostreams.pulsar.jms.common.AbstractConnectionFactory;
+import com.echostreams.pulsar.jms.utils.PulsarJMSException;
+import org.apache.pulsar.client.api.Authentication;
+import org.apache.pulsar.client.api.AuthenticationFactory;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.impl.auth.AuthenticationAthenz;
+import org.apache.pulsar.client.impl.auth.AuthenticationTls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.Connection;
 import javax.jms.JMSException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class PulsarConnectionFactory extends AbstractConnectionFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarConnectionFactory.class);
@@ -19,7 +26,7 @@ public class PulsarConnectionFactory extends AbstractConnectionFactory {
     protected String password;
 
     public PulsarConnectionFactory() {
-        this(PulsarConfiguration.getBrokerUrl());
+        this(PulsarConfiguration.WEB_SERVICE_URL);
     }
 
     public PulsarConnectionFactory(String brokerURL) {
@@ -60,12 +67,56 @@ public class PulsarConnectionFactory extends AbstractConnectionFactory {
         return null;
     }
 
-    private static URI createURI(String brokerURL) {
+    public static PulsarClient tlsAuthentication(TLSAuthParams tlsAuthParams) {
+
+        Map<String, String> authParams = new HashMap<>();
+        authParams.put("tlsCertFile", tlsAuthParams.getTlsCertFile());
+        authParams.put("tlsKeyFile", tlsAuthParams.getTlsKeyFile());
+
+        Authentication tlsAuth;
+        PulsarClient client = null;
         try {
-            return new URI(brokerURL);
-        } catch (URISyntaxException var2) {
-            throw (IllegalArgumentException) (new IllegalArgumentException("Invalid broker URI: " + brokerURL)).initCause(var2);
+            tlsAuth = AuthenticationFactory
+                    .create(AuthenticationTls.class.getName(), authParams);
+
+            client = PulsarClient.builder()
+                    .serviceUrl(tlsAuthParams.getServiceUrl())
+                    .enableTls(true)
+                    .tlsTrustCertsFilePath(tlsAuthParams.getTlsTrustCertsFilePath())
+                    .authentication(tlsAuth)
+                    .build();
+
+        } catch (PulsarClientException e) {
+            new PulsarJMSException("TLS Authentication Error", e.getMessage());
         }
+
+        return client;
+    }
+
+    public static PulsarClient athenzAuthentication(AthenzAuthParams athenzAuthParams) {
+        Map<String, String> authParams = new HashMap<>();
+        authParams.put("tenantDomain", athenzAuthParams.getTenantDomain()); // Tenant domain name
+        authParams.put("tenantService", athenzAuthParams.getTenantService()); // Tenant service name
+        authParams.put("providerDomain", athenzAuthParams.getProviderDomain()); // Provider domain name
+        authParams.put("privateKey", athenzAuthParams.getPrivateKey()); // Tenant private key path
+        authParams.put("keyId", athenzAuthParams.getKeyId()); // Key id for the tenant private key (optional, default: "0")
+
+        Authentication athenzAuth;
+        PulsarClient client = null;
+        try {
+            athenzAuth = AuthenticationFactory
+                    .create(AuthenticationAthenz.class.getName(), authParams);
+
+            client = PulsarClient.builder()
+                    .serviceUrl(athenzAuthParams.getServiceUrl())
+                    .enableTls(true)
+                    .tlsTrustCertsFilePath(athenzAuthParams.getTlsTrustCertsFilePath())
+                    .authentication(athenzAuth)
+                    .build();
+        } catch (PulsarClientException e) {
+            new PulsarJMSException("Athenz Authentication Error", e.getMessage());
+        }
+        return client;
     }
 
 }
