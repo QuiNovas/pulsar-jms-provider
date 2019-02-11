@@ -1,13 +1,16 @@
 package com.echostreams.pulsar.jms.common;
 
+import com.echostreams.pulsar.jms.common.destination.DestinationTools;
+import com.echostreams.pulsar.jms.utils.EmptyEnumeration;
+import com.echostreams.pulsar.jms.utils.IteratorEnumeration;
 import com.echostreams.pulsar.jms.utils.PulsarJMSException;
+import com.echostreams.pulsar.jms.utils.RawDataBuffer;
 
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.Session;
+import javax.jms.*;
+import java.lang.IllegalStateException;
 import java.lang.ref.WeakReference;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
 
 public abstract class AbstractMessage implements Message {
@@ -87,177 +90,249 @@ public abstract class AbstractMessage implements Message {
 
     @Override
     public Destination getJMSReplyTo() throws JMSException {
-        return null;
+        assertDeserializationLevel(MessageSerializationLevel.ALL_HEADERS);
+        return replyTo;
     }
 
     @Override
-    public void setJMSReplyTo(Destination destination) throws JMSException {
-
+    public void setJMSReplyTo(Destination replyTo) throws JMSException {
+        assertDeserializationLevel(MessageSerializationLevel.FULL);
+        this.replyTo = replyTo;
     }
 
     @Override
     public Destination getJMSDestination() throws JMSException {
-        return null;
+        return destination;
     }
 
     @Override
     public void setJMSDestination(Destination destination) throws JMSException {
-
+        assertDeserializationLevel(MessageSerializationLevel.FULL);
+        this.destination = DestinationTools.asRef(destination);
     }
 
     @Override
     public int getJMSDeliveryMode() throws JMSException {
-        return 0;
+        return deliveryMode;
     }
 
     @Override
-    public void setJMSDeliveryMode(int i) throws JMSException {
+    public void setJMSDeliveryMode(int deliveryMode) throws JMSException
+    {
+        if (deliveryMode != DeliveryMode.PERSISTENT &&
+                deliveryMode != DeliveryMode.NON_PERSISTENT)
+            throw new PulsarJMSException("Invalid delivery mode : "+deliveryMode,"INVALID_DELIVERY_MODE");
 
+        assertDeserializationLevel(MessageSerializationLevel.FULL);
+        this.deliveryMode = deliveryMode;
     }
 
     @Override
     public boolean getJMSRedelivered() throws JMSException {
-        return false;
+        return redelivered;
     }
 
     @Override
-    public void setJMSRedelivered(boolean b) throws JMSException {
+    public void setJMSRedelivered(boolean redelivered) throws JMSException {
+        this.redelivered = redelivered;
 
+        // Update raw cache accordingly
+        if (rawMessage != null)
+        {
+            byte flags = rawMessage.readByte(1);
+            if (redelivered)
+                flags = (byte)(flags | (1 << 4));
+            else
+                flags = (byte)(flags & ~(1 << 4));
+
+            rawMessage.writeByte(flags, 1);
+        }
     }
 
     @Override
     public String getJMSType() throws JMSException {
-        return null;
+        assertDeserializationLevel(MessageSerializationLevel.ALL_HEADERS);
+        return type;
     }
 
     @Override
     public void setJMSType(String s) throws JMSException {
-
+        assertDeserializationLevel(MessageSerializationLevel.FULL);
+        this.type = type;
     }
 
     @Override
     public long getJMSExpiration() throws JMSException {
-        return 0;
+        return expiration;
     }
 
     @Override
-    public void setJMSExpiration(long l) throws JMSException {
-
+    public void setJMSExpiration(long expiration) throws JMSException {
+        assertDeserializationLevel(MessageSerializationLevel.FULL);
+        this.expiration = expiration;
     }
 
     @Override
     public int getJMSPriority() throws JMSException {
-        return 0;
+        return priority;
     }
 
     @Override
-    public void setJMSPriority(int i) throws JMSException {
+    public void setJMSPriority(int priority) throws JMSException {
+        if (priority < 0 || priority > 9)
+            throw new PulsarJMSException("Invalid priority value : "+priority,"INVALID_PRIORITY");
 
+        assertDeserializationLevel(MessageSerializationLevel.FULL);
+        this.priority = priority;
     }
 
     @Override
     public void clearProperties() throws JMSException {
-
+        if (propertyMap != null) propertyMap.clear();
+        propertiesAreReadOnly = false;
     }
 
     @Override
-    public boolean propertyExists(String s) throws JMSException {
-        return false;
+    public boolean propertyExists(String name) throws JMSException {
+        if (name == null || name.length() == 0)
+            throw new IllegalArgumentException("Empty property name");
+
+        assertDeserializationLevel(MessageSerializationLevel.ALL_HEADERS);
+        return propertyMap != null ? propertyMap.containsKey(name) : false;
     }
 
     @Override
-    public boolean getBooleanProperty(String s) throws JMSException {
-        return false;
+    public boolean getBooleanProperty(String name) throws JMSException {
+        return MessageConverter.asBoolean(getProperty(name));
+    }
+
+    private Object getProperty(String name) {
+        assertDeserializationLevel(MessageSerializationLevel.ALL_HEADERS);
+        return propertyMap != null ? propertyMap.get(name) : null;
     }
 
     @Override
-    public byte getByteProperty(String s) throws JMSException {
-        return 0;
+    public byte getByteProperty(String name) throws JMSException {
+        return MessageConverter.asByte(getProperty(name));
     }
 
     @Override
-    public short getShortProperty(String s) throws JMSException {
-        return 0;
+    public short getShortProperty(String name) throws JMSException {
+        return MessageConverter.asShort(getProperty(name));
     }
 
     @Override
-    public int getIntProperty(String s) throws JMSException {
-        return 0;
+    public int getIntProperty(String name) throws JMSException {
+        return MessageConverter.asInt(getProperty(name));
     }
 
     @Override
-    public long getLongProperty(String s) throws JMSException {
-        return 0;
+    public long getLongProperty(String name) throws JMSException {
+        return MessageConverter.asLong(getProperty(name));
     }
 
     @Override
-    public float getFloatProperty(String s) throws JMSException {
-        return 0;
+    public float getFloatProperty(String name) throws JMSException {
+        return MessageConverter.asFloat(getProperty(name));
     }
 
     @Override
-    public double getDoubleProperty(String s) throws JMSException {
-        return 0;
+    public double getDoubleProperty(String name) throws JMSException {
+        return MessageConverter.asDouble(getProperty(name));
     }
 
     @Override
-    public String getStringProperty(String s) throws JMSException {
-        return null;
+    public String getStringProperty(String name) throws JMSException {
+        return MessageConverter.asString(getProperty(name));
     }
 
     @Override
-    public Object getObjectProperty(String s) throws JMSException {
-        return null;
+    public Object getObjectProperty(String name) throws JMSException {
+        return getProperty(name);
     }
 
     @Override
     public Enumeration getPropertyNames() throws JMSException {
-        return null;
+        assertDeserializationLevel(MessageSerializationLevel.ALL_HEADERS);
+
+        if (propertyMap == null)
+            return new EmptyEnumeration<>();
+
+        return new IteratorEnumeration<>(propertyMap.keySet().iterator());
     }
 
     @Override
-    public void setBooleanProperty(String s, boolean b) throws JMSException {
-
+    public void setBooleanProperty(String name, boolean value) throws JMSException {
+        setProperty(name,Boolean.valueOf(value));
     }
 
     @Override
-    public void setByteProperty(String s, byte b) throws JMSException {
-
+    public void setByteProperty(String name, byte value) throws JMSException {
+        setProperty(name,Byte.valueOf(value));
     }
 
     @Override
-    public void setShortProperty(String s, short i) throws JMSException {
-
+    public void setShortProperty(String name, short value) throws JMSException {
+        setProperty(name,Short.valueOf(value));
     }
 
     @Override
-    public void setIntProperty(String s, int i) throws JMSException {
-
+    public void setIntProperty(String name, int value) throws JMSException {
+        setProperty(name,Integer.valueOf(value));
     }
 
     @Override
-    public void setLongProperty(String s, long l) throws JMSException {
-
+    public void setLongProperty(String name, long value) throws JMSException {
+        setProperty(name,Long.valueOf(value));
     }
 
     @Override
-    public void setFloatProperty(String s, float v) throws JMSException {
-
+    public void setFloatProperty(String name, float value) throws JMSException {
+        setProperty(name,new Float(value));
     }
 
     @Override
-    public void setDoubleProperty(String s, double v) throws JMSException {
-
+    public void setDoubleProperty(String name, double value) throws JMSException {
+        setProperty(name,new Double(value));
     }
 
     @Override
-    public void setStringProperty(String s, String s1) throws JMSException {
-
+    public void setStringProperty(String name, String value) throws JMSException {
+        setProperty(name,value);
     }
 
     @Override
-    public void setObjectProperty(String s, Object o) throws JMSException {
+    public void setObjectProperty(String name, Object value) throws JMSException {
+        if (value == null)
+            throw new MessageFormatException("A property value cannot be null");
 
+        // Check type
+        if (!(value instanceof Boolean ||
+                value instanceof Byte ||
+                value instanceof Short ||
+                value instanceof Integer ||
+                value instanceof Long ||
+                value instanceof Float ||
+                value instanceof Double ||
+                value instanceof String))
+            throw new MessageFormatException("Unsupported property value type : "+value.getClass().getName());
+
+        setProperty(name,value);
+    }
+
+    private void setProperty( String name , Object value ) throws JMSException
+    {
+        if (propertiesAreReadOnly)
+            throw new MessageNotWriteableException("Message properties are read-only");
+
+        if (name == null || name.length() == 0)
+            throw new IllegalArgumentException("Empty property name");
+
+        assertDeserializationLevel(MessageSerializationLevel.FULL);
+
+        if (propertyMap == null)
+            propertyMap = new HashMap<>(17);
+        propertyMap.put(name, value);
     }
 
     protected final AbstractSession getSession() throws JMSException
@@ -283,11 +358,6 @@ public abstract class AbstractMessage implements Message {
         //session.acknowledge();
     }
 
-    @Override
-    public void clearBody() throws JMSException {
-
-    }
-
     protected final synchronized void assertDeserializationLevel( int targetLevel )
     {
         if (rawMessage == null)
@@ -296,4 +366,49 @@ public abstract class AbstractMessage implements Message {
         if (unserializationLevel < targetLevel)
             throw new IllegalStateException("Message is not deserialized (level="+unserializationLevel+")");
     }
+
+    public final void setSession( AbstractSession session ) throws JMSException
+    {
+        if (session == null)
+            this.sessionRef = null;
+        else
+        {
+            // Consistency check
+            if (sessionRef != null && sessionRef.get() != session)
+                throw new PulsarJMSException("Message session already set","CONSISTENCY");
+
+            this.sessionRef = new WeakReference<>(session);
+        }
+    }
+
+    protected abstract byte getType();
+
+    public abstract AbstractMessage copy();
+
+    protected final void copyCommonFields( AbstractMessage clone )
+    {
+        clone.id = this.id;
+        clone.correlId = this.correlId;
+        clone.priority = this.priority;
+        clone.deliveryMode = this.deliveryMode;
+        clone.destination = this.destination;
+        clone.expiration = this.expiration;
+        clone.redelivered = this.redelivered;
+        clone.replyTo = this.replyTo;
+        clone.timestamp = this.timestamp;
+        clone.type = this.type;
+
+        @SuppressWarnings("unchecked")
+        Map<String,Object> propertyMapClone = this.propertyMap != null ? (Map<String,Object>)((HashMap<String,Object>)this.propertyMap).clone() : null;
+        clone.propertyMap = propertyMapClone;
+
+        // Copy raw message cache if any
+        clone.unserializationLevel = this.unserializationLevel;
+        if (this.rawMessage != null)
+            clone.rawMessage = this.rawMessage.copy();
+    }
+
+    protected abstract void serializeBodyTo( RawDataBuffer out );
+    protected abstract void unserializeBodyFrom( RawDataBuffer in );
+
 }

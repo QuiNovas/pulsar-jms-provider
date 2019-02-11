@@ -101,16 +101,6 @@ public abstract class AbstractConnection implements Connection {
     }
 
     @Override
-    public void start() throws JMSException {
-
-    }
-
-    @Override
-    public void stop() throws JMSException {
-
-    }
-
-    @Override
     public void close() throws JMSException {
         externalAccessLock.writeLock().lock();
         try
@@ -124,6 +114,16 @@ public abstract class AbstractConnection implements Connection {
         {
             externalAccessLock.writeLock().unlock();
         }
+    }
+
+    @Override
+    public ConnectionConsumer createConnectionConsumer(Destination destination, String s, ServerSessionPool serverSessionPool, int i) throws JMSException {
+        throw new PulsarJMSException("Unsupported feature","UNSUPPORTED_FEATURE");
+    }
+
+    @Override
+    public ConnectionConsumer createDurableConnectionConsumer(Topic topic, String s, String s1, ServerSessionPool serverSessionPool, int i) throws JMSException {
+        throw new PulsarJMSException("Unsupported feature","UNSUPPORTED_FEATURE");
     }
 
     protected void onConnectionClose()

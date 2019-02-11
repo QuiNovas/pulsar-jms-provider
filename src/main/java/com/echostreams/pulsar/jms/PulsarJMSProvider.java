@@ -11,4 +11,12 @@ public class PulsarJMSProvider {
         PropertiesUtils propertiesUtils = PropertiesUtils.getDataFromPropFile();
         propertiesUtils.getServiceUrl();
     }
+
+    public void deleteQueue(String queueName) {
+
+    }
+
+    public void deleteTopic(String topicName) {
+
+    }
 }
