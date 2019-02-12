@@ -1,5 +1,6 @@
 package com.echostreams.pulsar.jms.common;
 
+import com.echostreams.pulsar.jms.utils.ErrorTools;
 import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 import com.echostreams.pulsar.jms.utils.StringRelatedUtils;
 import com.echostreams.pulsar.jms.utils.id.IntegerID;
@@ -21,6 +22,7 @@ public abstract class AbstractConnection implements Connection {
     // ID and client ID handling
     protected String id = UUIDProvider.getInstance().getShortUUID();
     protected String clientID;
+    private static ConnectionMetaData metaData = new ConnectionMetaDataImpl();
 
     // Runtime
     protected boolean started;
@@ -33,68 +35,58 @@ public abstract class AbstractConnection implements Connection {
     private Object exceptionListenerLock = new Object();
 
     // Children
-    private Map<IntegerID,AbstractSession> sessions = new Hashtable<>();
+    private Map<IntegerID, AbstractSession> sessions = new Hashtable<>();
 
-    public AbstractConnection( String clientID )
-    {
+    public AbstractConnection(String clientID) {
         this.clientID = clientID;
     }
 
-    public String getId()
-    {
+    public String getId() {
         return id;
     }
 
     @Override
     public String getClientID() throws JMSException {
         externalAccessLock.readLock().lock();
-        try
-        {
+        try {
             if (clientID == null)
                 throw new InvalidClientIDException("Client ID not set");
             return clientID;
-        }
-        finally
-        {
+        } finally {
             externalAccessLock.readLock().unlock();
         }
     }
 
     @Override
-    public void setClientID(String s) throws JMSException {
+    public void setClientID(String clientID) throws JMSException {
         externalAccessLock.readLock().lock();
-        try
-        {
+        try {
             isClosed();
             if (StringRelatedUtils.isEmpty(clientID))
                 throw new InvalidClientIDException("Empty client ID");
             if (this.clientID != null)
                 throw new IllegalStateException("Client ID is already set"); // [JMS SPEC]
-        }
-        finally
-        {
+            this.clientID = clientID;
+        } finally {
             externalAccessLock.readLock().unlock();
         }
     }
 
-    protected final void isClosed() throws JMSException
-    {
-        if (closed)
-            throw new PulsarJMSException("Connection is closed","CONNECTION_CLOSED");
+    @Override
+    public ConnectionMetaData getMetaData() throws JMSException {
+        return metaData;
     }
 
     @Override
     public ExceptionListener getExceptionListener() throws JMSException {
-        synchronized (exceptionListenerLock)
-        {
+        synchronized (exceptionListenerLock) {
             return exceptionListener;
         }
     }
 
     @Override
     public void setExceptionListener(ExceptionListener exceptionListener) throws JMSException {
-        synchronized (exceptionListenerLock)
-        {
+        synchronized (exceptionListenerLock) {
             isClosed();
             this.exceptionListener = exceptionListener;
         }
@@ -103,31 +95,32 @@ public abstract class AbstractConnection implements Connection {
     @Override
     public void close() throws JMSException {
         externalAccessLock.writeLock().lock();
-        try
-        {
+        try {
             if (closed)
                 return;
             closed = true;
             onConnectionClose();
-        }
-        finally
-        {
+        } finally {
             externalAccessLock.writeLock().unlock();
         }
     }
 
     @Override
     public ConnectionConsumer createConnectionConsumer(Destination destination, String s, ServerSessionPool serverSessionPool, int i) throws JMSException {
-        throw new PulsarJMSException("Unsupported feature","UNSUPPORTED_FEATURE");
+        throw new PulsarJMSException("Unsupported feature", "UNSUPPORTED_FEATURE");
     }
 
     @Override
     public ConnectionConsumer createDurableConnectionConsumer(Topic topic, String s, String s1, ServerSessionPool serverSessionPool, int i) throws JMSException {
-        throw new PulsarJMSException("Unsupported feature","UNSUPPORTED_FEATURE");
+        throw new PulsarJMSException("Unsupported feature", "UNSUPPORTED_FEATURE");
     }
 
-    protected void onConnectionClose()
-    {
+    protected final void isClosed() throws JMSException {
+        if (closed)
+            throw new PulsarJMSException("Connection is closed", "CONNECTION_CLOSED");
+    }
+
+    protected void onConnectionClose() {
         // Close remaining sessions
         closeRemainingSessions();
 
@@ -135,189 +128,150 @@ public abstract class AbstractConnection implements Connection {
         dropTemporaryQueues();
     }
 
-    private void closeRemainingSessions()
-    {
+    private void closeRemainingSessions() {
         if (sessions == null)
             return;
 
         List<AbstractSession> sessionsToClose = new ArrayList<>(sessions.size());
-        synchronized (sessions)
-        {
+        synchronized (sessions) {
             sessionsToClose.addAll(sessions.values());
         }
-        for (int n = 0 ; n < sessionsToClose.size() ; n++)
-        {
+        for (int n = 0; n < sessionsToClose.size(); n++) {
             Session session = sessionsToClose.get(n);
-            LOGGER.debug("Auto-closing unclosed session : "+session);
-            try
-            {
+            LOGGER.debug("Auto-closing unclosed session : " + session);
+            try {
                 session.close();
-            }
-            catch (JMSException e)
-            {
-                LOGGER.error("",e);
+            } catch (JMSException e) {
+                ErrorTools.log(e, LOGGER);
             }
         }
     }
 
-    public final void exceptionOccured( JMSException exception )
-    {
-        try
-        {
-            synchronized (exceptionListenerLock)
-            {
+    public final void exceptionOccured(JMSException exception) {
+        try {
+            synchronized (exceptionListenerLock) {
                 if (exceptionListener != null)
                     exceptionListener.onException(exception);
             }
-        }
-        catch (Exception e)
-        {
-            LOGGER.error("Exception listener failed",e);
+        } catch (Exception e) {
+            LOGGER.error("Exception listener failed", e);
         }
     }
 
-    public final void registerTemporaryQueue( String queueName )
-    {
-        synchronized (temporaryQueues)
-        {
+    public final void registerTemporaryQueue(String queueName) {
+        synchronized (temporaryQueues) {
             temporaryQueues.add(queueName);
         }
     }
 
-    public final void unregisterTemporaryQueue( String queueName )
-    {
-        synchronized (temporaryQueues)
-        {
+    public final void unregisterTemporaryQueue(String queueName) {
+        synchronized (temporaryQueues) {
             temporaryQueues.remove(queueName);
         }
     }
 
-    public final boolean isRegisteredTemporaryQueue( String queueName )
-    {
-        synchronized (temporaryQueues)
-        {
+    public final boolean isRegisteredTemporaryQueue(String queueName) {
+        synchronized (temporaryQueues) {
             return temporaryQueues.contains(queueName);
         }
     }
 
-    public final void registerTemporaryTopic( String topicName )
-    {
-        synchronized (temporaryTopics)
-        {
+    public final void registerTemporaryTopic(String topicName) {
+        synchronized (temporaryTopics) {
             temporaryTopics.add(topicName);
         }
     }
 
-    public final void unregisterTemporaryTopic( String topicName )
-    {
-        synchronized (temporaryTopics)
-        {
+    public final void unregisterTemporaryTopic(String topicName) {
+        synchronized (temporaryTopics) {
             temporaryTopics.remove(topicName);
         }
     }
 
-    public final boolean isRegisteredTemporaryTopic( String topicName )
-    {
-        synchronized (temporaryTopics)
-        {
+    public final boolean isRegisteredTemporaryTopic(String topicName) {
+        synchronized (temporaryTopics) {
             return temporaryTopics.contains(topicName);
         }
     }
 
-    private void dropTemporaryQueues()
-    {
-        synchronized (temporaryQueues)
-        {
+    private void dropTemporaryQueues() {
+        synchronized (temporaryQueues) {
             Iterator<String> remainingQueues = temporaryQueues.iterator();
-            while (remainingQueues.hasNext())
-            {
+            while (remainingQueues.hasNext()) {
                 String queueName = remainingQueues.next();
-                try
-                {
+                try {
                     deleteTemporaryQueue(queueName);
-                }
-                catch (JMSException e)
-                {
-                    LOGGER.error("",e);
+                } catch (JMSException e) {
+                    ErrorTools.log(e, LOGGER);
                 }
             }
         }
     }
 
-    public abstract void deleteTemporaryQueue( String queueName ) throws JMSException;
+    public abstract void deleteTemporaryQueue(String queueName) throws JMSException;
 
-    public abstract void deleteTemporaryTopic( String topicName ) throws JMSException;
+    public abstract void deleteTemporaryTopic(String topicName) throws JMSException;
 
-    protected final void wakeUpLocalConsumers()
-    {
-        List<AbstractSession> sessionsSnapshot = new ArrayList<>(sessions.size());
-        synchronized (sessions)
-        {
-            sessionsSnapshot.addAll(sessions.values());
-        }
-        for(int n=0;n<sessionsSnapshot.size();n++)
-        {
-            AbstractSession session = sessionsSnapshot.get(n);
-            //session.wakeUpConsumers();
+    protected final void wakeUpLocalConsumers() {
+        try {
+            List<AbstractSession> sessionsSnapshot = new ArrayList<>(sessions.size());
+            synchronized (sessions) {
+                sessionsSnapshot.addAll(sessions.values());
+            }
+            for (int n = 0; n < sessionsSnapshot.size(); n++) {
+                AbstractSession session = sessionsSnapshot.get(n);
+                session.wakeUpConsumers();
+            }
+        } catch (JMSException e) {
+            ErrorTools.log(e, LOGGER);
         }
     }
 
     /**
      * Wait for sessions to finish the current deliveridispatching
      */
-    protected final void waitForDeliverySync()
-    {
+    protected final void waitForDeliverySync() {
         List<AbstractSession> sessionsSnapshot = new ArrayList<>(sessions.size());
-        synchronized (sessions)
-        {
+        synchronized (sessions) {
             sessionsSnapshot.addAll(sessions.values());
         }
-        for(int n=0;n<sessionsSnapshot.size();n++)
-        {
+        for (int n = 0; n < sessionsSnapshot.size(); n++) {
             AbstractSession session = sessionsSnapshot.get(n);
-            //session.waitForDeliverySync();
+            session.waitForDeliverySync();
         }
     }
 
     /**
      * Lookup a registered session
      */
-    public final AbstractSession lookupRegisteredSession( IntegerID sessionId )
-    {
+    public final AbstractSession lookupRegisteredSession(IntegerID sessionId) {
         return sessions.get(sessionId);
     }
 
     /**
      * Register a session
      */
-    protected final void registerSession( AbstractSession sessionToAdd )
-    {
-        //if (sessions.put(sessionToAdd.getId(),sessionToAdd) != null)
-          //  throw new IllegalArgumentException("Session "+sessionToAdd.getId()+" already exists");
+    protected final void registerSession(AbstractSession sessionToAdd) {
+        if (sessions.put(sessionToAdd.getId(), sessionToAdd) != null)
+            throw new IllegalArgumentException("Session " + sessionToAdd.getId() + " already exists");
     }
 
     /**
      * Unregister a session
      */
-    public final void unregisterSession( AbstractSession sessionToRemove )
-    {
-        //if (sessions.remove(sessionToRemove.getId()) == null)
-          //  LOGGER.warn("Unknown session : "+sessionToRemove);
+    public final void unregisterSession(AbstractSession sessionToRemove) {
+        if (sessions.remove(sessionToRemove.getId()) == null)
+            LOGGER.warn("Unknown session : " + sessionToRemove);
     }
 
     @Override
-    protected void finalize() throws Throwable
-    {
-        if (externalAccessLock != null && !closed)
-        {
+    protected void finalize() throws Throwable {
+        if (externalAccessLock != null && !closed) {
             LOGGER.warn("Connection was not properly closed, closing it now.");
-            try
-            {
+            try {
                 close();
-            }
-            catch (Throwable e)
-            {
-                LOGGER.error("Could not auto-close connection",e);
+            } catch (Throwable e) {
+                LOGGER.error("Could not auto-close connection", e);
             }
         }
     }
@@ -326,37 +280,34 @@ public abstract class AbstractConnection implements Connection {
      * Check if the connection is started
      * NOT SYNCHRONIZED TO AVOID DEADLOCKS
      */
-    public boolean isStarted()
-    {
+    public boolean isStarted() {
         return started && !closed;
     }
 
     /**
      * Get the number of active sessions for this connection
+     *
      * @return the number of active sessions for this connection
      */
-    public int getSessionsCount()
-    {
+    public int getSessionsCount() {
         return sessions.size();
     }
 
     /**
      * Get the number of active producers for this connection
+     *
      * @return the number of active producers for this connection
      */
-    public int getConsumersCount()
-    {
-        synchronized (sessions)
-        {
+    public int getConsumersCount() {
+        synchronized (sessions) {
             if (sessions.isEmpty())
                 return 0;
 
             int total = 0;
-            Iterator<AbstractSession>sessionsIterator = sessions.values().iterator();
-            while (sessionsIterator.hasNext())
-            {
+            Iterator<AbstractSession> sessionsIterator = sessions.values().iterator();
+            while (sessionsIterator.hasNext()) {
                 AbstractSession session = sessionsIterator.next();
-                //total += session.getConsumersCount();
+                total += session.getConsumersCount();
             }
             return total;
         }
@@ -364,21 +315,19 @@ public abstract class AbstractConnection implements Connection {
 
     /**
      * Get the number of active producers for this connection
+     *
      * @return the number of active producers for this connection
      */
-    public int getProducersCount()
-    {
-        synchronized (sessions)
-        {
+    public int getProducersCount() {
+        synchronized (sessions) {
             if (sessions.isEmpty())
                 return 0;
 
             int total = 0;
             Iterator<AbstractSession> sessionsIterator = sessions.values().iterator();
-            while (sessionsIterator.hasNext())
-            {
+            while (sessionsIterator.hasNext()) {
                 AbstractSession session = sessionsIterator.next();
-                //total += session.getProducersCount();
+                total += session.getProducersCount();
             }
             return total;
         }
@@ -387,22 +336,18 @@ public abstract class AbstractConnection implements Connection {
     /**
      * Get a description of entities held by this object
      */
-    public void getEntitiesDescription( StringBuilder sb )
-    {
+    public void getEntitiesDescription(StringBuilder sb) {
         sb.append(toString());
         sb.append("{");
-        synchronized (sessions)
-        {
-            if (!sessions.isEmpty())
-            {
+        synchronized (sessions) {
+            if (!sessions.isEmpty()) {
                 int pos = 0;
                 Iterator<AbstractSession> sessionsIterator = sessions.values().iterator();
-                while (sessionsIterator.hasNext())
-                {
+                while (sessionsIterator.hasNext()) {
                     AbstractSession session = sessionsIterator.next();
                     if (pos++ > 0)
                         sb.append(",");
-                    //session.getEntitiesDescription(sb);
+                    session.getEntitiesDescription(sb);
                 }
             }
         }
@@ -410,8 +355,7 @@ public abstract class AbstractConnection implements Connection {
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         StringBuilder sb = new StringBuilder();
 
         sb.append("Connection[#");
@@ -422,8 +366,4 @@ public abstract class AbstractConnection implements Connection {
 
         return sb.toString();
     }
-
-
-
-
 }

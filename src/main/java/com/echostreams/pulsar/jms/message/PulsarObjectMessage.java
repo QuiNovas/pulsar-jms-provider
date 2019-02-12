@@ -81,8 +81,7 @@ public class PulsarObjectMessage extends AbstractMessage implements ObjectMessag
     }
 
     @Override
-    public String toString()
-    {
-        return super.toString()+" bodySize="+body.length;
+    public String toString() {
+        return super.toString() + " bodySize=" + body.length;
     }
 }

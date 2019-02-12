@@ -39,7 +39,7 @@ public class PulsarSession extends AbstractSession {
 
     @Override
     public void commit() throws JMSException {
-        commit(true,null);
+        commit(true, null);
     }
 
     @Override
@@ -52,47 +52,38 @@ public class PulsarSession extends AbstractSession {
         recover(null);
     }
 
-    public final void commit( boolean commitGets , List<String> deliveredMessageIDs ) throws JMSException
-    {
-        if (!transacted)
-            throw new javax.jms.IllegalStateException("Session is not transacted"); // [JMS SPEC]
-
-        externalAccessLock.readLock().lock();
-        try
-        {
-            checkNotClosed();
-            commitUpdates(commitGets,deliveredMessageIDs,true);
-        }
-        finally
-        {
-            externalAccessLock.readLock().unlock();
-        }
-    }
-
     @Override
     public void acknowledge() throws JMSException {
         acknowledge(null);
     }
 
-    public final void acknowledge( List<String> deliveredMessageIDs ) throws JMSException
-    {
-        if (transacted)
-            throw new IllegalStateException("Session is transacted"); // [JMS SPEC]
+    public final void commit(boolean commitGets, List<String> deliveredMessageIDs) throws JMSException {
+        if (!transacted)
+            throw new javax.jms.IllegalStateException("Session is not transacted"); // [JMS SPEC]
 
         externalAccessLock.readLock().lock();
-        try
-        {
+        try {
             checkNotClosed();
-            commitUpdates(true,deliveredMessageIDs,false);
-        }
-        finally
-        {
+            commitUpdates(commitGets, deliveredMessageIDs, true);
+        } finally {
             externalAccessLock.readLock().unlock();
         }
     }
 
-    private void commitUpdates( boolean commitGets , List<String> deliveredMessageIDs , boolean commitPuts ) throws JMSException
-    {
+    public final void acknowledge(List<String> deliveredMessageIDs) throws JMSException {
+        if (transacted)
+            throw new IllegalStateException("Session is transacted"); // [JMS SPEC]
+
+        externalAccessLock.readLock().lock();
+        try {
+            checkNotClosed();
+            commitUpdates(true, deliveredMessageIDs, false);
+        } finally {
+            externalAccessLock.readLock().unlock();
+        }
+    }
+
+    private void commitUpdates(boolean commitGets, List<String> deliveredMessageIDs, boolean commitPuts) throws JMSException {
         /*SynchronizationBarrier commitBarrier = null;
         List<PulsarQueue> queuesWithGet = null;
         MessageLockSet locks = null;
@@ -251,25 +242,20 @@ public class PulsarSession extends AbstractSession {
         }*/
     }
 
-    public final void rollback( boolean rollbackGets, List<String> deliveredMessageIDs ) throws JMSException
-    {
+    public final void rollback(boolean rollbackGets, List<String> deliveredMessageIDs) throws JMSException {
         if (!transacted)
             throw new IllegalStateException("Session is not transacted"); // [JMS SPEC]
 
         externalAccessLock.readLock().lock();
-        try
-        {
+        try {
             checkNotClosed();
-            rollbackUpdates(true,rollbackGets, deliveredMessageIDs);
-        }
-        finally
-        {
+            rollbackUpdates(true, rollbackGets, deliveredMessageIDs);
+        } finally {
             externalAccessLock.readLock().unlock();
         }
     }
 
-    private void rollbackUpdates( boolean rollbackPuts , boolean rollbackGets, List<String> deliveredMessageIDs ) throws JMSException
-    {
+    private void rollbackUpdates(boolean rollbackPuts, boolean rollbackGets, List<String> deliveredMessageIDs) throws JMSException {
         // Clear pending put messages
         /*if (rollbackPuts && transacted)
         {
@@ -371,19 +357,15 @@ public class PulsarSession extends AbstractSession {
         }*/
     }
 
-    public final void recover( List<String> deliveredMessageIDs ) throws JMSException
-    {
+    public final void recover(List<String> deliveredMessageIDs) throws JMSException {
         externalAccessLock.readLock().lock();
-        try
-        {
+        try {
             checkNotClosed();
             if (transacted)
                 throw new IllegalStateException("Session is transacted"); // [JMS SPEC]
 
-            rollbackUpdates(true,true, deliveredMessageIDs);
-        }
-        finally
-        {
+            rollbackUpdates(true, true, deliveredMessageIDs);
+        } finally {
             externalAccessLock.readLock().unlock();
         }
     }

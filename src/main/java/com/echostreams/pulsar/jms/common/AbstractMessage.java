@@ -26,7 +26,7 @@ public abstract class AbstractMessage implements Message {
     private Destination replyTo;
     private long timestamp;
     private String type;
-    private Map<String,Object> propertyMap;
+    private Map<String, Object> propertyMap;
 
     // Serialization related
     private int unserializationLevel;
@@ -45,7 +45,7 @@ public abstract class AbstractMessage implements Message {
 
     @Override
     public String getJMSMessageID() throws JMSException {
-        return id != null ? "ID:"+id : null;
+        return id != null ? "ID:" + id : null;
     }
 
     @Override
@@ -117,11 +117,10 @@ public abstract class AbstractMessage implements Message {
     }
 
     @Override
-    public void setJMSDeliveryMode(int deliveryMode) throws JMSException
-    {
+    public void setJMSDeliveryMode(int deliveryMode) throws JMSException {
         if (deliveryMode != DeliveryMode.PERSISTENT &&
                 deliveryMode != DeliveryMode.NON_PERSISTENT)
-            throw new PulsarJMSException("Invalid delivery mode : "+deliveryMode,"INVALID_DELIVERY_MODE");
+            throw new PulsarJMSException("Invalid delivery mode : " + deliveryMode, "INVALID_DELIVERY_MODE");
 
         assertDeserializationLevel(MessageSerializationLevel.FULL);
         this.deliveryMode = deliveryMode;
@@ -137,13 +136,12 @@ public abstract class AbstractMessage implements Message {
         this.redelivered = redelivered;
 
         // Update raw cache accordingly
-        if (rawMessage != null)
-        {
+        if (rawMessage != null) {
             byte flags = rawMessage.readByte(1);
             if (redelivered)
-                flags = (byte)(flags | (1 << 4));
+                flags = (byte) (flags | (1 << 4));
             else
-                flags = (byte)(flags & ~(1 << 4));
+                flags = (byte) (flags & ~(1 << 4));
 
             rawMessage.writeByte(flags, 1);
         }
@@ -180,7 +178,7 @@ public abstract class AbstractMessage implements Message {
     @Override
     public void setJMSPriority(int priority) throws JMSException {
         if (priority < 0 || priority > 9)
-            throw new PulsarJMSException("Invalid priority value : "+priority,"INVALID_PRIORITY");
+            throw new PulsarJMSException("Invalid priority value : " + priority, "INVALID_PRIORITY");
 
         assertDeserializationLevel(MessageSerializationLevel.FULL);
         this.priority = priority;
@@ -263,42 +261,42 @@ public abstract class AbstractMessage implements Message {
 
     @Override
     public void setBooleanProperty(String name, boolean value) throws JMSException {
-        setProperty(name,Boolean.valueOf(value));
+        setProperty(name, Boolean.valueOf(value));
     }
 
     @Override
     public void setByteProperty(String name, byte value) throws JMSException {
-        setProperty(name,Byte.valueOf(value));
+        setProperty(name, Byte.valueOf(value));
     }
 
     @Override
     public void setShortProperty(String name, short value) throws JMSException {
-        setProperty(name,Short.valueOf(value));
+        setProperty(name, Short.valueOf(value));
     }
 
     @Override
     public void setIntProperty(String name, int value) throws JMSException {
-        setProperty(name,Integer.valueOf(value));
+        setProperty(name, Integer.valueOf(value));
     }
 
     @Override
     public void setLongProperty(String name, long value) throws JMSException {
-        setProperty(name,Long.valueOf(value));
+        setProperty(name, Long.valueOf(value));
     }
 
     @Override
     public void setFloatProperty(String name, float value) throws JMSException {
-        setProperty(name,new Float(value));
+        setProperty(name, new Float(value));
     }
 
     @Override
     public void setDoubleProperty(String name, double value) throws JMSException {
-        setProperty(name,new Double(value));
+        setProperty(name, new Double(value));
     }
 
     @Override
     public void setStringProperty(String name, String value) throws JMSException {
-        setProperty(name,value);
+        setProperty(name, value);
     }
 
     @Override
@@ -315,13 +313,12 @@ public abstract class AbstractMessage implements Message {
                 value instanceof Float ||
                 value instanceof Double ||
                 value instanceof String))
-            throw new MessageFormatException("Unsupported property value type : "+value.getClass().getName());
+            throw new MessageFormatException("Unsupported property value type : " + value.getClass().getName());
 
-        setProperty(name,value);
+        setProperty(name, value);
     }
 
-    private void setProperty( String name , Object value ) throws JMSException
-    {
+    private void setProperty(String name, Object value) throws JMSException {
         if (propertiesAreReadOnly)
             throw new MessageNotWriteableException("Message properties are read-only");
 
@@ -335,14 +332,13 @@ public abstract class AbstractMessage implements Message {
         propertyMap.put(name, value);
     }
 
-    protected final AbstractSession getSession() throws JMSException
-    {
+    protected final AbstractSession getSession() throws JMSException {
         if (sessionRef == null)
-            throw new PulsarJMSException("Message has no associated session","CONSISTENCY");
+            throw new PulsarJMSException("Message has no associated session", "CONSISTENCY");
 
         AbstractSession session = sessionRef.get();
         if (session == null)
-            throw new PulsarJMSException("Message session is no longer valid","CONSISTENCY");
+            throw new PulsarJMSException("Message session is no longer valid", "CONSISTENCY");
 
         return session;
     }
@@ -358,24 +354,21 @@ public abstract class AbstractMessage implements Message {
         //session.acknowledge();
     }
 
-    protected final synchronized void assertDeserializationLevel( int targetLevel )
-    {
+    protected final synchronized void assertDeserializationLevel(int targetLevel) {
         if (rawMessage == null)
             return; // Not a serialized message or fully deserialized message
 
         if (unserializationLevel < targetLevel)
-            throw new IllegalStateException("Message is not deserialized (level="+unserializationLevel+")");
+            throw new IllegalStateException("Message is not deserialized (level=" + unserializationLevel + ")");
     }
 
-    public final void setSession( AbstractSession session ) throws JMSException
-    {
+    public final void setSession(AbstractSession session) throws JMSException {
         if (session == null)
             this.sessionRef = null;
-        else
-        {
+        else {
             // Consistency check
             if (sessionRef != null && sessionRef.get() != session)
-                throw new PulsarJMSException("Message session already set","CONSISTENCY");
+                throw new PulsarJMSException("Message session already set", "CONSISTENCY");
 
             this.sessionRef = new WeakReference<>(session);
         }
@@ -385,8 +378,7 @@ public abstract class AbstractMessage implements Message {
 
     public abstract AbstractMessage copy();
 
-    protected final void copyCommonFields( AbstractMessage clone )
-    {
+    protected final void copyCommonFields(AbstractMessage clone) {
         clone.id = this.id;
         clone.correlId = this.correlId;
         clone.priority = this.priority;
@@ -399,7 +391,7 @@ public abstract class AbstractMessage implements Message {
         clone.type = this.type;
 
         @SuppressWarnings("unchecked")
-        Map<String,Object> propertyMapClone = this.propertyMap != null ? (Map<String,Object>)((HashMap<String,Object>)this.propertyMap).clone() : null;
+        Map<String, Object> propertyMapClone = this.propertyMap != null ? (Map<String, Object>) ((HashMap<String, Object>) this.propertyMap).clone() : null;
         clone.propertyMap = propertyMapClone;
 
         // Copy raw message cache if any
@@ -408,7 +400,8 @@ public abstract class AbstractMessage implements Message {
             clone.rawMessage = this.rawMessage.copy();
     }
 
-    protected abstract void serializeBodyTo( RawDataBuffer out );
-    protected abstract void unserializeBodyFrom( RawDataBuffer in );
+    protected abstract void serializeBodyTo(RawDataBuffer out);
+
+    protected abstract void unserializeBodyFrom(RawDataBuffer in);
 
 }

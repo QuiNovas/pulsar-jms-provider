@@ -2,6 +2,7 @@ package com.echostreams.pulsar.jms.message;
 
 import com.echostreams.pulsar.jms.common.AbstractMessage;
 import com.echostreams.pulsar.jms.common.MessageConverter;
+import com.echostreams.pulsar.jms.common.MessageGroup;
 import com.echostreams.pulsar.jms.common.MessageSerializationLevel;
 import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 import com.echostreams.pulsar.jms.utils.RawDataBuffer;
@@ -200,83 +201,122 @@ public class PulsarStreamMessage extends AbstractMessage implements StreamMessag
     }
 
     @Override
-    public void writeShort(short i) throws JMSException {
-
+    public void writeShort(short value) throws JMSException {
+        write(Short.valueOf(value));
     }
 
     @Override
-    public void writeChar(char c) throws JMSException {
-
+    public void writeChar(char value) throws JMSException {
+        write(new Character(value));
     }
 
     @Override
-    public void writeInt(int i) throws JMSException {
-
+    public void writeInt(int value) throws JMSException {
+        write(Integer.valueOf(value));
     }
 
     @Override
-    public void writeLong(long l) throws JMSException {
-
+    public void writeLong(long value) throws JMSException {
+        write(Long.valueOf(value));
     }
 
     @Override
-    public void writeFloat(float v) throws JMSException {
-
+    public void writeFloat(float value) throws JMSException {
+        write(new Float(value));
     }
 
     @Override
-    public void writeDouble(double v) throws JMSException {
-
+    public void writeDouble(double value) throws JMSException {
+        write(new Double(value));
     }
 
     @Override
-    public void writeString(String s) throws JMSException {
-
+    public void writeString(String value) throws JMSException {
+        write(value);
     }
 
     @Override
-    public void writeBytes(byte[] bytes) throws JMSException {
-
+    public void writeBytes(byte[] value) throws JMSException {
+        write(value.clone());
     }
 
     @Override
-    public void writeBytes(byte[] bytes, int i, int i1) throws JMSException {
-
+    public void writeBytes(byte[] value, int offset, int length) throws JMSException {
+        byte[] reducedValue = new byte[length];
+        System.arraycopy(value, offset, reducedValue, 0, length);
+        write(reducedValue);
     }
 
     @Override
-    public void writeObject(Object o) throws JMSException {
+    public void writeObject(Object value) throws JMSException {
+        if (value != null) {
+            // Check supported types
+            if (!(value instanceof Boolean ||
+                    value instanceof Byte ||
+                    value instanceof Character ||
+                    value instanceof Short ||
+                    value instanceof Integer ||
+                    value instanceof Long ||
+                    value instanceof Float ||
+                    value instanceof Double ||
+                    value instanceof String ||
+                    value instanceof byte[]))
+                throw new MessageFormatException("Unsupported value type : " + value.getClass().getName());
+        }
 
+        write(value);
     }
 
-    @Override
-    public void reset() throws JMSException {
 
+    @Override
+    public void reset() {
+        bodyIsReadOnly = true;
+        readPos = 0;
+        currentByteInputStream = null;
     }
 
     @Override
     protected byte getType() {
-        return 0;
+        return MessageGroup.STREAM;
     }
 
     @Override
     public AbstractMessage copy() {
-        return null;
+        PulsarStreamMessage clone = new PulsarStreamMessage();
+        copyCommonFields(clone);
+        @SuppressWarnings("unchecked")
+        Vector<Object> bodyClone = (Vector<Object>) this.body.clone();
+        clone.body = bodyClone;
+
+        return clone;
     }
 
     @Override
     protected void serializeBodyTo(RawDataBuffer out) {
-
+        out.writeInt(body.size());
+        for (int n = 0; n < body.size(); n++) {
+            Object value = body.get(n);
+            out.writeGeneric(value);
+        }
     }
 
     @Override
     protected void unserializeBodyFrom(RawDataBuffer in) {
-
+        int size = in.readInt();
+        body.ensureCapacity(size);
+        for (int n = 0; n < size; n++) {
+            Object value = in.readGeneric();
+            body.add(value);
+        }
     }
 
     @Override
     public void clearBody() throws JMSException {
-
+        assertDeserializationLevel(MessageSerializationLevel.FULL);
+        bodyIsReadOnly = false;
+        body.clear();
+        readPos = 0;
+        currentByteInputStream = null;
     }
 
     private void backupState() {

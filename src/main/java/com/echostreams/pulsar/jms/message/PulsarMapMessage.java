@@ -16,9 +16,11 @@ import java.util.Map;
 
 public class PulsarMapMessage extends AbstractMessage implements MapMessage {
 
-    private Map<String,Object> body;
+    private Map<String, Object> body;
 
-    public PulsarMapMessage(){ super(); }
+    public PulsarMapMessage() {
+        super();
+    }
 
     @Override
     public boolean getBoolean(String name) throws JMSException {
@@ -73,7 +75,7 @@ public class PulsarMapMessage extends AbstractMessage implements MapMessage {
     @Override
     public Object getObject(String name) throws JMSException {
         if (StringRelatedUtils.isEmpty(name))
-            throw new PulsarJMSException("Object name cannot be null or empty","INVALID_OBJECT_NAME");
+            throw new PulsarJMSException("Object name cannot be null or empty", "INVALID_OBJECT_NAME");
 
         return body != null ? body.get(name) : null;
     }
@@ -88,80 +90,67 @@ public class PulsarMapMessage extends AbstractMessage implements MapMessage {
 
     @Override
     public void setBoolean(String name, boolean value) throws JMSException {
-        put(name,Boolean.valueOf(value));
+        put(name, Boolean.valueOf(value));
     }
 
     @Override
     public void setByte(String name, byte value) throws JMSException {
-        put(name,Byte.valueOf(value));
+        put(name, Byte.valueOf(value));
     }
 
     @Override
-    public void setShort(String name, short value) throws JMSException
-    {
-        put(name,Short.valueOf(value));
+    public void setShort(String name, short value) throws JMSException {
+        put(name, Short.valueOf(value));
     }
 
     @Override
-    public void setChar(String name, char value) throws JMSException
-    {
-        put(name,new Character(value));
+    public void setChar(String name, char value) throws JMSException {
+        put(name, new Character(value));
     }
 
     @Override
-    public void setInt(String name, int value) throws JMSException
-    {
-        put(name,Integer.valueOf(value));
+    public void setInt(String name, int value) throws JMSException {
+        put(name, Integer.valueOf(value));
     }
 
     @Override
-    public void setLong(String name, long value) throws JMSException
-    {
-        put(name,Long.valueOf(value));
+    public void setLong(String name, long value) throws JMSException {
+        put(name, Long.valueOf(value));
     }
 
     @Override
-    public void setFloat(String name, float value) throws JMSException
-    {
-        put(name,new Float(value));
+    public void setFloat(String name, float value) throws JMSException {
+        put(name, new Float(value));
     }
 
     @Override
-    public void setDouble(String name, double value) throws JMSException
-    {
-        put(name,new Double(value));
+    public void setDouble(String name, double value) throws JMSException {
+        put(name, new Double(value));
     }
 
     @Override
-    public void setString(String name, String value) throws JMSException
-    {
-        put(name,value);
+    public void setString(String name, String value) throws JMSException {
+        put(name, value);
     }
 
     @Override
-    public void setBytes(String name, byte[] value) throws JMSException
-    {
-        put(name,value != null ? value.clone() : null);
+    public void setBytes(String name, byte[] value) throws JMSException {
+        put(name, value != null ? value.clone() : null);
     }
 
     @Override
-    public void setBytes(String name, byte[] value, int offset, int length) throws JMSException
-    {
-        if (value != null)
-        {
+    public void setBytes(String name, byte[] value, int offset, int length) throws JMSException {
+        if (value != null) {
             byte[] reducedValue = new byte[length];
             System.arraycopy(value, offset, reducedValue, 0, length);
-            put(name,reducedValue);
-        }
-        else
-            put(name,null);
+            put(name, reducedValue);
+        } else
+            put(name, null);
     }
 
     @Override
-    public void setObject(String name, Object value) throws JMSException
-    {
-        if (value != null)
-        {
+    public void setObject(String name, Object value) throws JMSException {
+        if (value != null) {
             if (!(value instanceof Boolean ||
                     value instanceof Byte ||
                     value instanceof Character ||
@@ -172,22 +161,20 @@ public class PulsarMapMessage extends AbstractMessage implements MapMessage {
                     value instanceof Double ||
                     value instanceof String ||
                     value instanceof byte[]))
-                throw new MessageFormatException("Unsupported value type : "+value.getClass().getName());
+                throw new MessageFormatException("Unsupported value type : " + value.getClass().getName());
 
             if (value instanceof byte[])
                 value = ArrayRelatedUtils.copy((byte[]) value); // [JMS Spec]
 
-            put(name,value);
-        }
-        else
-            put(name,null);
+            put(name, value);
+        } else
+            put(name, null);
     }
 
     @Override
-    public boolean itemExists(String name) throws JMSException
-    {
+    public boolean itemExists(String name) throws JMSException {
         if (name == null || name.length() == 0)
-            throw new PulsarJMSException("Object name cannot be null or empty","INVALID_OBJECT_NAME");
+            throw new PulsarJMSException("Object name cannot be null or empty", "INVALID_OBJECT_NAME");
 
         return body != null ? body.containsKey(name) : false;
     }
@@ -201,8 +188,7 @@ public class PulsarMapMessage extends AbstractMessage implements MapMessage {
     public AbstractMessage copy() {
         PulsarMapMessage clone = new PulsarMapMessage();
         copyCommonFields(clone);
-        if (this.body != null)
-        {
+        if (this.body != null) {
             clone.body = new HashMap<>();
             clone.body.putAll(this.body);
         }
@@ -227,8 +213,7 @@ public class PulsarMapMessage extends AbstractMessage implements MapMessage {
         bodyIsReadOnly = false;
     }
 
-    private Object put(String name,Object value) throws JMSException
-    {
+    private Object put(String name, Object value) throws JMSException {
         if (name == null || name.length() == 0)
             throw new IllegalArgumentException("Item name cannot be null");
 
@@ -239,6 +224,6 @@ public class PulsarMapMessage extends AbstractMessage implements MapMessage {
         if (body == null)
             body = new HashMap<>();
 
-        return body.put(name,value);
+        return body.put(name, value);
     }
 }

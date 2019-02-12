@@ -30,56 +30,55 @@ package com.echostreams.pulsar.jms.utils.id;
 import java.util.Random;
 
 /**
- * @version 1.0
  * @author David Beaumont, Copyright 2005
- * <p>
- * A Java implementation of the MT19937 (Mersenne Twister) pseudo
- * random number generator algorithm based upon the original C code
- * by Makoto Matsumoto and Takuji Nishimura (see
- * <a href="http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html">
- * http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html</a> for
- * more information.
- * <p>
- * As a subclass of java.util.Random this class provides a single
- * canonical method next() for generating bits in the pseudo random
- * number sequence.  Anyone using this class should invoke the public
- * inherited methods (nextInt(), nextFloat etc.) to obtain values as
- * normal.  This class should provide a drop-in replacement for the
- * standard implementation of java.util.Random with the additional
- * advantage of having a far longer period and the ability to use a
- * far larger seed value.
- * <p>
- * This is <b>not</b> a cryptographically strong source of randomness
- * and should <b>not</b> be used for cryptographic systems or in any
- * other situation where true random numbers are required.
- * <p>
- * <!-- Creative Commons License -->
- * <a href="http://creativecommons.org/licenses/LGPL/2.1/"><img alt="CC-GNU LGPL" border="0" src="http://creativecommons.org/images/public/cc-LGPL-a.png" /></a><br />
- * This software is licensed under the <a href="http://creativecommons.org/licenses/LGPL/2.1/">CC-GNU LGPL</a>.
- * <!-- /Creative Commons License -->
- * 
- * <!--
- * <rdf:RDF xmlns="http://web.resource.org/cc/"
- *     xmlns:dc="http://purl.org/dc/elements/1.1/"
- *     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
- *     
- * <Work rdf:about="">
- *    <license rdf:resource="http://creativecommons.org/licenses/LGPL/2.1/" />
- *    <dc:type rdf:resource="http://purl.org/dc/dcmitype/Software" />
- * </Work>
- * 
- * <License rdf:about="http://creativecommons.org/licenses/LGPL/2.1/">
- *    <permits rdf:resource="http://web.resource.org/cc/Reproduction" />
- *    <permits rdf:resource="http://web.resource.org/cc/Distribution" />
- *    <requires rdf:resource="http://web.resource.org/cc/Notice" />
- *    <permits rdf:resource="http://web.resource.org/cc/DerivativeWorks" />
- *    <requires rdf:resource="http://web.resource.org/cc/ShareAlike" />
- *    <requires rdf:resource="http://web.resource.org/cc/SourceCode" />
- * </License>
- * 
- * </rdf:RDF>
- * -->
- * 
+ *         <p>
+ *         A Java implementation of the MT19937 (Mersenne Twister) pseudo
+ *         random number generator algorithm based upon the original C code
+ *         by Makoto Matsumoto and Takuji Nishimura (see
+ *         <a href="http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html">
+ *         http://www.math.sci.hiroshima-u.ac.jp/~m-mat/MT/emt.html</a> for
+ *         more information.
+ *         <p>
+ *         As a subclass of java.util.Random this class provides a single
+ *         canonical method next() for generating bits in the pseudo random
+ *         number sequence.  Anyone using this class should invoke the public
+ *         inherited methods (nextInt(), nextFloat etc.) to obtain values as
+ *         normal.  This class should provide a drop-in replacement for the
+ *         standard implementation of java.util.Random with the additional
+ *         advantage of having a far longer period and the ability to use a
+ *         far larger seed value.
+ *         <p>
+ *         This is <b>not</b> a cryptographically strong source of randomness
+ *         and should <b>not</b> be used for cryptographic systems or in any
+ *         other situation where true random numbers are required.
+ *         <p>
+ *         <!-- Creative Commons License -->
+ *         <a href="http://creativecommons.org/licenses/LGPL/2.1/"><img alt="CC-GNU LGPL" border="0" src="http://creativecommons.org/images/public/cc-LGPL-a.png" /></a><br />
+ *         This software is licensed under the <a href="http://creativecommons.org/licenses/LGPL/2.1/">CC-GNU LGPL</a>.
+ *         <!-- /Creative Commons License -->
+ *         <p>
+ *         <!--
+ *         <rdf:RDF xmlns="http://web.resource.org/cc/"
+ *         xmlns:dc="http://purl.org/dc/elements/1.1/"
+ *         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+ *         <p>
+ *         <Work rdf:about="">
+ *         <license rdf:resource="http://creativecommons.org/licenses/LGPL/2.1/" />
+ *         <dc:type rdf:resource="http://purl.org/dc/dcmitype/Software" />
+ *         </Work>
+ *         <p>
+ *         <License rdf:about="http://creativecommons.org/licenses/LGPL/2.1/">
+ *         <permits rdf:resource="http://web.resource.org/cc/Reproduction" />
+ *         <permits rdf:resource="http://web.resource.org/cc/Distribution" />
+ *         <requires rdf:resource="http://web.resource.org/cc/Notice" />
+ *         <permits rdf:resource="http://web.resource.org/cc/DerivativeWorks" />
+ *         <requires rdf:resource="http://web.resource.org/cc/ShareAlike" />
+ *         <requires rdf:resource="http://web.resource.org/cc/SourceCode" />
+ *         </License>
+ *         <p>
+ *         </rdf:RDF>
+ *         -->
+ * @version 1.0
  */
 public class MTRandom extends Random {
 
@@ -97,13 +96,13 @@ public class MTRandom extends Random {
 
     private final static int N = 624;
     private final static int M = 397;
-    private final static int MAGIC[] = { 0x0, 0x9908b0df };
+    private final static int MAGIC[] = {0x0, 0x9908b0df};
     private final static int MAGIC_FACTOR1 = 1812433253;
     private final static int MAGIC_FACTOR2 = 1664525;
     private final static int MAGIC_FACTOR3 = 1566083941;
-    private final static int MAGIC_MASK1   = 0x9d2c5680;
-    private final static int MAGIC_MASK2   = 0xefc60000;
-    private final static int MAGIC_SEED    = 19650218;
+    private final static int MAGIC_MASK1 = 0x9d2c5680;
+    private final static int MAGIC_MASK2 = 0xefc60000;
+    private final static int MAGIC_SEED = 19650218;
 
     // Internal state
     private transient int[] mt;
@@ -117,7 +116,7 @@ public class MTRandom extends Random {
      * the no-argument constructor for java.util.Random which will result
      * in the class being initialised with a seed value obtained by calling
      * System.currentTimeMillis().
-     */ 
+     */
     public MTRandom() {
         super();
     }
@@ -176,7 +175,7 @@ public class MTRandom extends Random {
         // ---- Begin Mersenne Twister Algorithm ----
         mt[0] = seed;
         for (mti = 1; mti < N; mti++) {
-            mt[mti] = (MAGIC_FACTOR1 * (mt[mti-1] ^ (mt[mti-1] >>> 30)) + mti);
+            mt[mti] = (MAGIC_FACTOR1 * (mt[mti - 1] ^ (mt[mti - 1] >>> 30)) + mti);
         }
         // ---- End Mersenne Twister Algorithm ----
     }
@@ -192,12 +191,12 @@ public class MTRandom extends Random {
      * this method will only use the lower 32 bits of any seed value
      * passed in and will match the behaviour of the original C code
      * exactly with respect to state initialisation.
-     * 
+     *
      * @param seed The 64 bit value used to initialise the random
-     * number generator state. 
+     *             number generator state.
      */
     @Override
-	public final synchronized void setSeed(long seed) {
+    public final synchronized void setSeed(long seed) {
         // Annoying runtime check for initialisation of internal data
         // caused by java.util.Random invoking setSeed() during init.
         // This is unavoidable because no fields in our instance will
@@ -205,8 +204,8 @@ public class MTRandom extends Random {
         // were placed at the declaration of the member variable.
         if (ibuf == null) ibuf = new int[2];
 
-        ibuf[0] = (int)seed;
-        ibuf[1] = (int)(seed >>> 32);
+        ibuf[0] = (int) seed;
+        ibuf[1] = (int) (seed >>> 32);
         setSeed(ibuf);
     }
 
@@ -223,7 +222,7 @@ public class MTRandom extends Random {
      * efficient.
      *
      * @param buf The non-empty byte array of seed information.
-     * @throws NullPointerException if the buffer is null.
+     * @throws NullPointerException     if the buffer is null.
      * @throws IllegalArgumentException if the buffer has zero length.
      */
     public final void setSeed(byte[] buf) {
@@ -234,9 +233,9 @@ public class MTRandom extends Random {
      * This method resets the state of this instance using the integer
      * array of seed data provided.  This is the canonical way of
      * resetting the pseudo random number sequence.
-     * 
+     *
      * @param buf The non-empty integer array of seed information.
-     * @throws NullPointerException if the buffer is null.
+     * @throws NullPointerException     if the buffer is null.
      * @throws IllegalArgumentException if the buffer has zero length.
      */
     public final synchronized void setSeed(int[] buf) {
@@ -246,15 +245,22 @@ public class MTRandom extends Random {
         int i = 1, j = 0, k = (N > length ? N : length);
         setSeed(MAGIC_SEED);
         for (; k > 0; k--) {
-            mt[i] = (mt[i] ^ ((mt[i-1] ^ (mt[i-1] >>> 30)) * MAGIC_FACTOR2)) + buf[j] + j;
-            i++; j++;
-            if (i >= N) { mt[0] = mt[N-1]; i = 1; }
+            mt[i] = (mt[i] ^ ((mt[i - 1] ^ (mt[i - 1] >>> 30)) * MAGIC_FACTOR2)) + buf[j] + j;
+            i++;
+            j++;
+            if (i >= N) {
+                mt[0] = mt[N - 1];
+                i = 1;
+            }
             if (j >= length) j = 0;
         }
-        for (k = N-1; k > 0; k--) {
-            mt[i] = (mt[i] ^ ((mt[i-1] ^ (mt[i-1] >>> 30)) * MAGIC_FACTOR3)) - i;
+        for (k = N - 1; k > 0; k--) {
+            mt[i] = (mt[i] ^ ((mt[i - 1] ^ (mt[i - 1] >>> 30)) * MAGIC_FACTOR3)) - i;
             i++;
-            if (i >= N) { mt[0] = mt[N-1]; i = 1; }
+            if (i >= N) {
+                mt[0] = mt[N - 1];
+                i = 1;
+            }
         }
         mt[0] = UPPER_MASK; // MSB is 1; assuring non-zero initial array
         // ---- End Mersenne Twister Algorithm ----
@@ -277,13 +283,13 @@ public class MTRandom extends Random {
      * <pre>
      * mt.setSeed(12345);
      * int foo = mt.nextInt(32);</pre>
-     * 
+     *
      * @param bits The number of significant bits desired in the output.
      * @return The next value in the pseudo random sequence with the
      * specified number of bits in the lower part of the integer.
      */
     @Override
-	protected final synchronized int next(int bits) {
+    protected final synchronized int next(int bits) {
         // ---- Begin Mersenne Twister Algorithm ----
         int y, kk;
         if (mti >= N) {             // generate N words at one time
@@ -295,21 +301,21 @@ public class MTRandom extends Random {
             // Java instance must result in initialisation occurring
             // Use the constructor MTRandom(true) to enable backwards
             // compatible behaviour.
-            
-            for (kk = 0; kk < N-M; kk++) {
-                y = (mt[kk] & UPPER_MASK) | (mt[kk+1] & LOWER_MASK);
-                mt[kk] = mt[kk+M] ^ (y >>> 1) ^ MAGIC[y & 0x1];
+
+            for (kk = 0; kk < N - M; kk++) {
+                y = (mt[kk] & UPPER_MASK) | (mt[kk + 1] & LOWER_MASK);
+                mt[kk] = mt[kk + M] ^ (y >>> 1) ^ MAGIC[y & 0x1];
             }
-            for (;kk < N-1; kk++) {
-                y = (mt[kk] & UPPER_MASK) | (mt[kk+1] & LOWER_MASK);
-                mt[kk] = mt[kk+(M-N)] ^ (y >>> 1) ^ MAGIC[y & 0x1];
+            for (; kk < N - 1; kk++) {
+                y = (mt[kk] & UPPER_MASK) | (mt[kk + 1] & LOWER_MASK);
+                mt[kk] = mt[kk + (M - N)] ^ (y >>> 1) ^ MAGIC[y & 0x1];
             }
-            y = (mt[N-1] & UPPER_MASK) | (mt[0] & LOWER_MASK);
-            mt[N-1] = mt[M-1] ^ (y >>> 1) ^ MAGIC[y & 0x1];
+            y = (mt[N - 1] & UPPER_MASK) | (mt[0] & LOWER_MASK);
+            mt[N - 1] = mt[M - 1] ^ (y >>> 1) ^ MAGIC[y & 0x1];
 
             mti = 0;
         }
-  
+
         y = mt[mti++];
 
         // Tempering
@@ -318,7 +324,7 @@ public class MTRandom extends Random {
         y ^= (y << 15) & MAGIC_MASK2;
         y ^= (y >>> 18);
         // ---- End Mersenne Twister Algorithm ----
-        return (y >>> (32-bits));
+        return (y >>> (32 - bits));
     }
 
     // This is a fairly obscure little code section to pack a
@@ -342,18 +348,18 @@ public class MTRandom extends Random {
      * is empty and will produce an empty integer array, but the
      * setSeed() method will throw an exception if the empty integer
      * array is passed to it.
-     * 
+     *
      * @param buf The non-null byte array to be packed.
      * @return A non-null integer array of the packed bytes.
      * @throws NullPointerException if the given byte array is null.
      */
     public static int[] pack(byte[] buf) {
-        int k, blen = buf.length, ilen = ((buf.length+3) >>> 2);
+        int k, blen = buf.length, ilen = ((buf.length + 3) >>> 2);
         int[] ibuf = new int[ilen];
         for (int n = 0; n < ilen; n++) {
-            int m = (n+1) << 2;
+            int m = (n + 1) << 2;
             if (m > blen) m = blen;
-            for (k = buf[--m]&0xff; (m & 0x3) != 0; k = (k << 8) | buf[--m]&0xff) continue;
+            for (k = buf[--m] & 0xff; (m & 0x3) != 0; k = (k << 8) | buf[--m] & 0xff) continue;
             ibuf[n] = k;
         }
         return ibuf;

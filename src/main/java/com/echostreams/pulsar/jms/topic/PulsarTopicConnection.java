@@ -1,5 +1,6 @@
 package com.echostreams.pulsar.jms.topic;
 
+import com.echostreams.pulsar.jms.PulsarJMSProvider;
 import com.echostreams.pulsar.jms.config.PulsarConnection;
 import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 
@@ -7,14 +8,15 @@ import javax.jms.*;
 
 public class PulsarTopicConnection extends PulsarConnection implements TopicConnection {
 
-    public PulsarTopicConnection(String clientID) {
-        super(clientID);
+    public PulsarTopicConnection(PulsarJMSProvider pulsarJMSProvider, String clientID) {
+
+        super(pulsarJMSProvider, clientID);
     }
 
     @Override
     public TopicSession createTopicSession(boolean transacted, int acknowledgeMode) throws JMSException {
         isClosed();
-        PulsarTopicSession session =  new PulsarTopicSession(idProvider.createID(),this,pulsarJMSProvider,transacted,acknowledgeMode);
+        PulsarTopicSession session = new PulsarTopicSession(idProvider.createID(), this, pulsarJMSProvider, transacted, acknowledgeMode);
         registerSession(session);
         return session;
     }
@@ -22,6 +24,6 @@ public class PulsarTopicConnection extends PulsarConnection implements TopicConn
     @Override
     public ConnectionConsumer createConnectionConsumer(Topic topic, String s, ServerSessionPool serverSessionPool, int i) throws JMSException {
         isClosed();
-        throw new PulsarJMSException("Unsupported feature","UNSUPPORTED_FEATURE");
+        throw new PulsarJMSException("Unsupported feature", "UNSUPPORTED_FEATURE");
     }
 }

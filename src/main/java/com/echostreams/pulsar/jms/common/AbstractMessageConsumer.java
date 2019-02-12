@@ -14,13 +14,12 @@ public abstract class AbstractMessageConsumer extends AbstractMessageHandler imp
     protected MessageListener messageListener;
     protected boolean autoAcknowledge;
 
-    public AbstractMessageConsumer( AbstractSession session,
-                                    Destination destination,
-                                    String messageSelector,
-                                    boolean noLocal,
-                                    IntegerID consumerId ) throws JMSException
-    {
-        super(session,destination,consumerId);
+    public AbstractMessageConsumer(AbstractSession session,
+                                   Destination destination,
+                                   String messageSelector,
+                                   boolean noLocal,
+                                   IntegerID consumerId) throws JMSException {
+        super(session, destination, consumerId);
         this.messageSelector = messageSelector;
         this.noLocal = noLocal;
         this.autoAcknowledge =
@@ -28,7 +27,7 @@ public abstract class AbstractMessageConsumer extends AbstractMessageHandler imp
                         session.getAcknowledgeMode() == Session.DUPS_OK_ACKNOWLEDGE);
 
         if (destination == null)
-            throw new PulsarJMSException("Message consumer destination cannot be null","INVALID_DESTINATION");
+            throw new PulsarJMSException("Message consumer destination cannot be null", "INVALID_DESTINATION");
     }
 
 
@@ -45,13 +44,10 @@ public abstract class AbstractMessageConsumer extends AbstractMessageHandler imp
     @Override
     public void setMessageListener(MessageListener messageListener) throws JMSException {
         externalAccessLock.readLock().lock();
-        try
-        {
+        try {
             checkNotClosed();
             this.messageListener = messageListener;
-        }
-        finally
-        {
+        } finally {
             externalAccessLock.readLock().unlock();
         }
     }
@@ -64,11 +60,10 @@ public abstract class AbstractMessageConsumer extends AbstractMessageHandler imp
     @Override
     public Message receive(long timeout) throws JMSException {
         if (messageListener != null)
-            throw new PulsarJMSException("Cannot receive messages while a listener is active","INVALID_OPERATION");
+            throw new PulsarJMSException("Cannot receive messages while a listener is active", "INVALID_OPERATION");
 
-        AbstractMessage message = receiveFromDestination(timeout,true);
-        if (message != null)
-        {
+        AbstractMessage message = receiveFromDestination(timeout, true);
+        if (message != null) {
             message.ensureDeserializationLevel(MessageSerializationLevel.FULL);
 
             message.setSession(session);
@@ -88,37 +83,31 @@ public abstract class AbstractMessageConsumer extends AbstractMessageHandler imp
     @Override
     public void close() throws JMSException {
         externalAccessLock.writeLock().lock();
-        try
-        {
+        try {
             if (closed)
                 return;
             closed = true;
             onConsumerClose();
-        }
-        finally
-        {
+        } finally {
             externalAccessLock.writeLock().unlock();
         }
         onConsumerClosed();
     }
 
-    protected void onConsumerClose()
-    {
+    protected void onConsumerClose() {
         session.unregisterConsumer(this);
     }
 
-    protected void onConsumerClosed()
-    {
+    protected void onConsumerClosed() {
         // Nothing
     }
 
-    protected final void checkNotClosed() throws JMSException
-    {
+    protected final void checkNotClosed() throws JMSException {
         if (closed)
             throw new IllegalStateException("Message handler is closed"); // [JMS SPEC]
     }
 
-    protected abstract AbstractMessage receiveFromDestination( long timeout , boolean duplicateRequired ) throws JMSException;
+    protected abstract AbstractMessage receiveFromDestination(long timeout, boolean duplicateRequired) throws JMSException;
 
 
 }

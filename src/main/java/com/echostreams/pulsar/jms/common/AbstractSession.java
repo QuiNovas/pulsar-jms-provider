@@ -3,6 +3,8 @@ package com.echostreams.pulsar.jms.common;
 import com.echostreams.pulsar.jms.common.destination.QueueRef;
 import com.echostreams.pulsar.jms.common.destination.TopicRef;
 import com.echostreams.pulsar.jms.message.*;
+import com.echostreams.pulsar.jms.queue.PulsarQueue;
+import com.echostreams.pulsar.jms.topic.PulsarTopic;
 import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 import com.echostreams.pulsar.jms.utils.id.IntegerID;
 import com.echostreams.pulsar.jms.utils.id.IntegerIDProvider;
@@ -11,11 +13,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 import javax.jms.IllegalStateException;
+import javax.jms.Queue;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -33,27 +33,24 @@ public abstract class AbstractSession implements Session {
     public Object deliveryLock = new Object();
 
     // Children
-    protected Map<IntegerID,AbstractMessageConsumer> consumersMap = new Hashtable<>();
-    private Map<IntegerID,AbstractMessageProducer> producersMap = new Hashtable<>();
-    private Map<IntegerID,AbstractQueueBrowser> browsersMap = new Hashtable<>();
+    protected Map<IntegerID, AbstractMessageConsumer> consumersMap = new Hashtable<>();
+    private Map<IntegerID, AbstractMessageProducer> producersMap = new Hashtable<>();
+    private Map<IntegerID, AbstractQueueBrowser> browsersMap = new Hashtable<>();
 
     // Runtime
     protected IntegerIDProvider idProvider = new IntegerIDProvider();
     protected ReadWriteLock externalAccessLock = new ReentrantReadWriteLock();
 
-    public AbstractSession( AbstractConnection connection , boolean transacted , int acknowledgeMode )
-    {
+    public AbstractSession(AbstractConnection connection, boolean transacted, int acknowledgeMode) {
         this.connection = connection;
         this.transacted = transacted;
         this.acknowledgeMode = acknowledgeMode;
     }
 
-    public AbstractSession( IntegerID id , AbstractConnection connection , boolean transacted , int acknowledgeMode )
-    {
-        this(connection,transacted,acknowledgeMode);
+    public AbstractSession(IntegerID id, AbstractConnection connection, boolean transacted, int acknowledgeMode) {
+        this(connection, transacted, acknowledgeMode);
         this.id = id;
     }
-
 
     @Override
     public BytesMessage createBytesMessage() throws JMSException {
@@ -110,15 +107,12 @@ public abstract class AbstractSession implements Session {
     @Override
     public void close() throws JMSException {
         externalAccessLock.writeLock().lock();
-        try
-        {
+        try {
             if (closed)
                 return;
             closed = true;
             onSessionClose();
-        }
-        finally
-        {
+        } finally {
             externalAccessLock.writeLock().unlock();
         }
         onSessionClosed();
@@ -126,12 +120,12 @@ public abstract class AbstractSession implements Session {
 
     @Override
     public MessageListener getMessageListener() throws JMSException {
-        throw new PulsarJMSException("Unsupported feature","UNSUPPORTED_FEATURE");
+        throw new PulsarJMSException("Unsupported feature", "UNSUPPORTED_FEATURE");
     }
 
     @Override
     public void setMessageListener(MessageListener messageListener) throws JMSException {
-        throw new PulsarJMSException("Unsupported feature","UNSUPPORTED_FEATURE");
+        throw new PulsarJMSException("Unsupported feature", "UNSUPPORTED_FEATURE");
     }
 
     @Override
@@ -146,17 +140,12 @@ public abstract class AbstractSession implements Session {
 
     @Override
     public MessageConsumer createConsumer(Destination destination) throws JMSException {
-        return createConsumer(destination,null,false);
+        return createConsumer(destination, null, false);
     }
 
     @Override
     public MessageConsumer createConsumer(Destination destination, String messageSelector) throws JMSException {
-        return createConsumer(destination,messageSelector,false);
-    }
-
-    @Override
-    public MessageConsumer createConsumer(Destination destination, String messageSelector, boolean b) throws JMSException {
-        return createConsumer(destination,messageSelector,false);
+        return createConsumer(destination, messageSelector, false);
     }
 
     @Override
@@ -204,109 +193,201 @@ public abstract class AbstractSession implements Session {
 
     }
 
-    protected void onSessionClose()
-    {
+    protected void onSessionClose() {
         connection.unregisterSession(this);
         closeRemainingConsumers();
         closeRemainingProducers();
         closeRemainingBrowsers();
     }
 
-    protected void onSessionClosed()
-    {
+    protected void onSessionClosed() {
         // Nothing
     }
 
-    private void closeRemainingConsumers()
-    {
+    private void closeRemainingConsumers() {
         List<AbstractMessageConsumer> consumersToClose = new ArrayList<>(consumersMap.size());
-        synchronized (consumersMap)
-        {
+        synchronized (consumersMap) {
             consumersToClose.addAll(consumersMap.values());
         }
-        for (int n = 0 ; n < consumersToClose.size() ; n++)
-        {
+        for (int n = 0; n < consumersToClose.size(); n++) {
             MessageConsumer consumer = consumersToClose.get(n);
-            LOGGER.debug("Auto-closing unclosed consumer : "+consumer);
-            try
-            {
+            LOGGER.debug("Auto-closing unclosed consumer : " + consumer);
+            try {
                 consumer.close();
-            }
-            catch (Exception e)
-            {
-                LOGGER.error("Could not close consumer "+consumer,e);
+            } catch (Exception e) {
+                LOGGER.error("Could not close consumer " + consumer, e);
             }
         }
     }
 
-    private void closeRemainingProducers()
-    {
+    private void closeRemainingProducers() {
         List<AbstractMessageProducer> producersToClose = new ArrayList<>(producersMap.size());
-        synchronized (producersMap)
-        {
+        synchronized (producersMap) {
             producersToClose.addAll(producersMap.values());
         }
-        for (int n = 0 ; n < producersToClose.size() ; n++)
-        {
+        for (int n = 0; n < producersToClose.size(); n++) {
             MessageProducer producer = producersToClose.get(n);
-            LOGGER.debug("Auto-closing unclosed producer : "+producer);
-            try
-            {
+            LOGGER.debug("Auto-closing unclosed producer : " + producer);
+            try {
                 producer.close();
-            }
-            catch (Exception e)
-            {
-                LOGGER.error("Could not close producer "+producer,e);
+            } catch (Exception e) {
+                LOGGER.error("Could not close producer " + producer, e);
             }
         }
     }
 
-    private void closeRemainingBrowsers()
-    {
+    private void closeRemainingBrowsers() {
         List<AbstractQueueBrowser> browsersToClose = new ArrayList<>(browsersMap.size());
-        synchronized (browsersMap)
-        {
+        synchronized (browsersMap) {
             browsersToClose.addAll(browsersMap.values());
         }
-        for (int n = 0 ; n < browsersToClose.size() ; n++)
-        {
+        for (int n = 0; n < browsersToClose.size(); n++) {
             QueueBrowser browser = browsersToClose.get(n);
-            LOGGER.debug("Auto-closing unclosed browser : "+browser);
-            try
-            {
+            LOGGER.debug("Auto-closing unclosed browser : " + browser);
+            try {
                 browser.close();
-            }
-            catch (Exception e)
-            {
-                LOGGER.error("Could not close browser "+browser,e);
+            } catch (Exception e) {
+                LOGGER.error("Could not close browser " + browser, e);
             }
         }
     }
 
-    protected final void checkNotClosed() throws JMSException
-    {
+    protected final void checkNotClosed() throws JMSException {
         if (closed)
             throw new IllegalStateException("Session is closed"); // [JMS SPEC]
     }
 
-    protected final void registerConsumer( AbstractMessageConsumer consumer )
-    {
-        if (consumersMap.put(consumer.getId(),consumer) != null)
-            throw new IllegalArgumentException("Consumer "+consumer.getId()+" already exists");
+    protected final void registerConsumer(AbstractMessageConsumer consumer) {
+        if (consumersMap.put(consumer.getId(), consumer) != null)
+            throw new IllegalArgumentException("Consumer " + consumer.getId() + " already exists");
     }
 
-    public final AbstractConnection getConnection()
-    {
+    public final AbstractConnection getConnection() {
         return connection;
     }
 
-    protected final void unregisterConsumer( AbstractMessageConsumer consumerToRemove )
-    {
+    protected final void unregisterConsumer(AbstractMessageConsumer consumerToRemove) {
         if (consumersMap.remove(consumerToRemove.getId()) == null)
-            LOGGER.warn("Unknown consumer : "+consumerToRemove);
+            LOGGER.warn("Unknown consumer : " + consumerToRemove);
     }
 
     public abstract void acknowledge() throws JMSException;
 
+    public final IntegerID getId() {
+        return id;
+    }
+
+    public final void checkTemporaryDestinationScope(Destination destination) throws JMSException {
+        if (destination instanceof PulsarQueue) {
+            PulsarQueue pulsarQueue = (PulsarQueue) destination;
+            if (pulsarQueue.isTemporary() && !connection.isRegisteredTemporaryQueue(pulsarQueue.getQueueName()))
+                throw new IllegalStateException("Temporary queue does not belong to session's connection.");
+        } else if (destination instanceof PulsarTopic) {
+            PulsarTopic pulsarTopic = (PulsarTopic) destination;
+            if (pulsarTopic.isTemporary() && !connection.isRegisteredTemporaryTopic(pulsarTopic.getTopicName()))
+                throw new IllegalStateException("Temporary topic does not belong to session's connection.");
+        } else
+            throw new PulsarJMSException("Unexpected destination type : " + destination, "INTERNAL_ERROR");
+    }
+
+    public final void wakeUpConsumers() throws JMSException {
+        synchronized (consumersMap) {
+            Iterator<AbstractMessageConsumer> allConsumers = consumersMap.values().iterator();
+            while (allConsumers.hasNext()) {
+                AbstractMessageConsumer consumer = allConsumers.next();
+                consumer.wakeUp();
+            }
+        }
+    }
+
+    public final AbstractMessageConsumer lookupRegisteredConsumer(IntegerID consumerId) {
+        return consumersMap.get(consumerId);
+    }
+
+    public final AbstractQueueBrowser lookupRegisteredBrowser(IntegerID browserId) {
+        return browsersMap.get(browserId);
+    }
+
+    protected final void registerProducer(AbstractMessageProducer producer) {
+        if (producersMap.put(producer.getId(), producer) != null)
+            throw new IllegalArgumentException("Producer " + producer.getId() + " already exists");
+    }
+
+    protected final void registerBrowser(AbstractQueueBrowser browser) {
+        if (browsersMap.put(browser.getId(), browser) != null)
+            throw new IllegalArgumentException("Browser " + browser.getId() + " already exists");
+    }
+
+    protected final void unregisterProducer(AbstractMessageProducer producerToRemove) {
+        if (producersMap.remove(producerToRemove.getId()) == null)
+            LOGGER.warn("Unknown producer : " + producerToRemove);
+    }
+
+    protected final void unregisterBrowser(AbstractQueueBrowser browserToRemove) {
+        if (browsersMap.remove(browserToRemove.getId()) == null)
+            LOGGER.warn("Unknown browser : " + browserToRemove);
+    }
+
+    public final int getConsumersCount() {
+        return consumersMap.size();
+    }
+
+    public final int getProducersCount() {
+        return producersMap.size();
+    }
+
+    public final void getEntitiesDescription(StringBuilder sb) {
+        sb.append(toString());
+        sb.append("{");
+        synchronized (consumersMap) {
+            if (!consumersMap.isEmpty()) {
+                int pos = 0;
+                Iterator<AbstractMessageConsumer> consumers = consumersMap.values().iterator();
+                while (consumers.hasNext()) {
+                    AbstractMessageHandler handler = consumers.next();
+                    if (pos++ > 0)
+                        sb.append(",");
+                    handler.getEntitiesDescription(sb);
+                }
+            }
+        }
+        synchronized (producersMap) {
+            if (!producersMap.isEmpty()) {
+                int pos = 0;
+                Iterator<AbstractMessageProducer> producers = producersMap.values().iterator();
+                while (producers.hasNext()) {
+                    AbstractMessageHandler handler = producers.next();
+                    if (pos++ > 0)
+                        sb.append(",");
+                    handler.getEntitiesDescription(sb);
+                }
+            }
+        }
+        sb.append("}");
+    }
+
+    public final void waitForDeliverySync() {
+        synchronized (deliveryLock) {
+            // Just waiting for lock ...
+        }
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("Session[#");
+        sb.append(id);
+        sb.append("](");
+        if (transacted)
+            sb.append("transacted");
+        else {
+            sb.append("not transacted, acknowledgeMode=");
+            sb.append(acknowledgeMode);
+        }
+        sb.append(")");
+
+        return sb.toString();
+    }
 
 }

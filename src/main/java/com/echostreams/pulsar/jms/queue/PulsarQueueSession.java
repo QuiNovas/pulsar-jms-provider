@@ -10,28 +10,25 @@ import javax.jms.*;
 public class PulsarQueueSession extends PulsarSession implements QueueSession {
 
     public PulsarQueueSession(IntegerID id, PulsarQueueConnection connection, PulsarJMSProvider pulsarJMSProvider, boolean transacted, int acknowledgeMode) {
-        super(id,connection, pulsarJMSProvider, transacted, acknowledgeMode);
+        super(id, connection, pulsarJMSProvider, transacted, acknowledgeMode);
 
     }
 
     @Override
     public QueueReceiver createReceiver(Queue queue) throws JMSException {
-        return createReceiver(queue,null);
+        return createReceiver(queue, null);
     }
 
     @Override
     public QueueReceiver createReceiver(Queue queue, String messageSelector) throws JMSException {
         externalAccessLock.readLock().lock();
-        try
-        {
+        try {
             checkNotClosed();
-            PulsarQueueReceiver receiver = new PulsarQueueReceiver(pul,this,queue,messageSelector,idProvider.createID());
+            PulsarQueueReceiver receiver = new PulsarQueueReceiver(pul, this, queue, messageSelector, idProvider.createID());
             registerConsumer(receiver);
             receiver.initDestination();
             return receiver;
-        }
-        finally
-        {
+        } finally {
             externalAccessLock.readLock().unlock();
         }
     }

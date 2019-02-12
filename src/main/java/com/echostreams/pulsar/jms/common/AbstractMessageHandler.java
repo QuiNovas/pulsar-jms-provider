@@ -25,23 +25,20 @@ public class AbstractMessageHandler {
     /**
      * Constructor
      */
-    public AbstractMessageHandler( AbstractSession session,
-                                   Destination destination,
-                                   IntegerID handlerId )
-    {
+    public AbstractMessageHandler(AbstractSession session,
+                                  Destination destination,
+                                  IntegerID handlerId) {
         this.session = session;
         this.connection = session.getConnection();
         this.destination = destination;
         this.id = handlerId;
     }
 
-    public final IntegerID getId()
-    {
+    public final IntegerID getId() {
         return id;
     }
 
-    public final AbstractSession getSession()
-    {
+    public final AbstractSession getSession() {
         return session;
     }
 }

@@ -8,8 +8,7 @@ import javax.jms.JMSException;
 
 public class PulsarEmptyMessage extends AbstractMessage {
 
-    public PulsarEmptyMessage()
-    {
+    public PulsarEmptyMessage() {
         super();
     }
 
@@ -19,8 +18,7 @@ public class PulsarEmptyMessage extends AbstractMessage {
     }
 
     @Override
-    public AbstractMessage copy()
-    {
+    public AbstractMessage copy() {
         PulsarEmptyMessage clone = new PulsarEmptyMessage();
         copyCommonFields(clone);
         return clone;

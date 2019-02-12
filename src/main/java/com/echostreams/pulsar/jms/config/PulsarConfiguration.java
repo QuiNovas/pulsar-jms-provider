@@ -21,7 +21,7 @@ public interface PulsarConfiguration {
 
     // Administration queues
     public static final String ADM_REQUEST_QUEUE = "_PULSAR_ADM_REQUEST";
-    public static final String ADM_REPLY_QUEUE   = "_PULSAR_ADM_REPLY";
+    public static final String ADM_REPLY_QUEUE = "_PULSAR_ADM_REPLY";
 
     public static final String QUEUE_PREFIX = "queue/";
     public static final String TOPIC_PREFIX = "topic/";

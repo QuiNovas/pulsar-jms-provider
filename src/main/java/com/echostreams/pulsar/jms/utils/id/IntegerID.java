@@ -1,39 +1,33 @@
 package com.echostreams.pulsar.jms.utils.id;
 
-public final class IntegerID
-{
-	private int id;
+public final class IntegerID {
+    private int id;
 
-	public IntegerID( int id )
-	{
-		this.id = id;
-	}
+    public IntegerID(int id) {
+        this.id = id;
+    }
 
-	public int asInt()
-	{
-		return id;
-	}
+    public int asInt() {
+        return id;
+    }
 
-	@Override
-	public int hashCode()
-	{
-		return id;
-	}
+    @Override
+    public int hashCode() {
+        return id;
+    }
 
-	@Override
-	public boolean equals(Object obj)
-	{
-		if (!(obj instanceof IntegerID))
-			return false;
-		
-		IntegerID other = (IntegerID)obj;
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof IntegerID))
+            return false;
 
-		return other.id == id;
-	}
+        IntegerID other = (IntegerID) obj;
 
-	@Override
-	public String toString()
-	{
-		return Integer.toString(id);
-	}
+        return other.id == id;
+    }
+
+    @Override
+    public String toString() {
+        return Integer.toString(id);
+    }
 }

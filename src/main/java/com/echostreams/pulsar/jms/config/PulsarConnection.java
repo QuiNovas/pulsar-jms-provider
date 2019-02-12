@@ -2,17 +2,20 @@ package com.echostreams.pulsar.jms.config;
 
 import com.echostreams.pulsar.jms.PulsarJMSProvider;
 import com.echostreams.pulsar.jms.common.AbstractConnection;
+import com.echostreams.pulsar.jms.common.ClientIDRegistry;
 import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 import com.echostreams.pulsar.jms.utils.id.IntegerID;
 
-import javax.jms.*;
+import javax.jms.JMSException;
+import javax.jms.Session;
 
 public class PulsarConnection extends AbstractConnection {
 
     protected PulsarJMSProvider pulsarJMSProvider;
 
-    public PulsarConnection(String clientID) {
+    public PulsarConnection(PulsarJMSProvider pulsarJMSProvider, String clientID) {
         super(clientID);
+        this.pulsarJMSProvider = pulsarJMSProvider;
     }
 
     @Override
@@ -30,28 +33,6 @@ public class PulsarConnection extends AbstractConnection {
     @Override
     public Session createSession(boolean transacted, int acknowledgeMode) throws JMSException {
         return createSession(idProvider.createID(), transacted, acknowledgeMode);
-    }
-
-    public final Session createSession(IntegerID sessionId, boolean transacted, int acknowledgeMode) throws JMSException {
-        if (!transacted && acknowledgeMode == Session.SESSION_TRANSACTED)
-            throw new PulsarJMSException("Acknowledge mode SESSION_TRANSACTED cannot be used for an non-transacted session", "INVALID_ACK_MODE");
-
-        externalAccessLock.readLock().lock();
-        try {
-            isClosed();
-
-            PulsarSession session = new PulsarSession(sessionId, this, pulsarJMSProvider, transacted, acknowledgeMode);
-            registerSession(session);
-            return session;
-        } finally {
-            externalAccessLock.readLock().unlock();
-        }
-    }
-
-
-    @Override
-    public ConnectionMetaData getMetaData() throws JMSException {
-        return null;
     }
 
     @Override
@@ -84,5 +65,46 @@ public class PulsarConnection extends AbstractConnection {
         } finally {
             externalAccessLock.readLock().unlock();
         }
+    }
+
+    public final Session createSession(IntegerID sessionId, boolean transacted, int acknowledgeMode) throws JMSException {
+        if (!transacted && acknowledgeMode == Session.SESSION_TRANSACTED)
+            throw new PulsarJMSException("Acknowledge mode SESSION_TRANSACTED cannot be used for an non-transacted session", "INVALID_ACK_MODE");
+
+        externalAccessLock.readLock().lock();
+        try {
+            isClosed();
+
+            PulsarSession session = new PulsarSession(sessionId, this, pulsarJMSProvider, transacted, acknowledgeMode);
+            registerSession(session);
+            return session;
+        } finally {
+            externalAccessLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public final void setClientID(String clientID) throws JMSException {
+        externalAccessLock.readLock().lock();
+        try {
+            super.setClientID(clientID);
+            try {
+                ClientIDRegistry.getInstance().register(clientID);
+            } catch (JMSException e) {
+                this.clientID = null; // Clear client ID
+                throw e;
+            }
+        } finally {
+            externalAccessLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    protected void onConnectionClose() {
+        super.onConnectionClose();
+
+        // Unregister client ID
+        if (clientID != null)
+            ClientIDRegistry.getInstance().unregister(clientID);
     }
 }

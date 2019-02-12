@@ -18,7 +18,7 @@
     <licenses>
 
     </licenses>
-
+    <!-- TO DO - Need input here -->
     <developers>
         <developer>
             <email>info@company.com</email>
@@ -78,12 +78,6 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>oracle</groupId>
-            <artifactId>aqapi13</artifactId>
-            <version>9i</version>
         </dependency>
 
     </dependencies>

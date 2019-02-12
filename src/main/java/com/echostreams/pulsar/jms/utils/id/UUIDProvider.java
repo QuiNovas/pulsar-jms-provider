@@ -11,8 +11,7 @@ public final class UUIDProvider {
 
     private static UUIDProvider instance = null;
 
-    public static synchronized UUIDProvider getInstance()
-    {
+    public static synchronized UUIDProvider getInstance() {
         if (instance == null)
             instance = new UUIDProvider();
 
@@ -22,18 +21,15 @@ public final class UUIDProvider {
     private Random seed;
     private String fixedPart;
 
-    private UUIDProvider()
-    {
-        try
-        {
+    private UUIDProvider() {
+        try {
             this.seed = new MTRandom();
 
             // Try to find localhost address
             byte[] ifBytes = null;
             InetAddress inetaddress = InetAddress.getLocalHost();
             ifBytes = inetaddress != null ? inetaddress.getAddress() : null;
-            if (ifBytes == null)
-            {
+            if (ifBytes == null) {
                 // Cannot determine local node address,
                 // use a random value instead
                 LOGGER.warn("Cannot determine localhost address, falling back to random value ...");
@@ -55,41 +51,35 @@ public final class UUIDProvider {
             base.append(s1.substring(4));
             fixedPart = base.toString();
             seed.nextInt();
-        }
-        catch (Exception e)
-        {
-            LOGGER.error("Could not initialise UUID generator",e);
-            throw new IllegalStateException("Could not initialise UUID generator : "+e.getMessage());
+        } catch (Exception e) {
+            LOGGER.error("Could not initialise UUID generator", e);
+            throw new IllegalStateException("Could not initialise UUID generator : " + e.getMessage());
         }
     }
 
-    public String getUUID()
-    {
+    public String getUUID() {
         StringBuilder uuid = new StringBuilder(36);
-        int i = (int)System.currentTimeMillis();
+        int i = (int) System.currentTimeMillis();
         int j = seed.nextInt();
-        hexFormat(i,uuid);
+        hexFormat(i, uuid);
         uuid.append(fixedPart);
-        hexFormat(j,uuid);
+        hexFormat(j, uuid);
         return uuid.toString();
     }
 
-    public String getShortUUID()
-    {
+    public String getShortUUID() {
         StringBuilder uuid = new StringBuilder(16);
-        int i = (int)System.currentTimeMillis();
+        int i = (int) System.currentTimeMillis();
         int j = seed.nextInt();
-        hexFormat(i,uuid);
-        hexFormat(j,uuid);
+        hexFormat(i, uuid);
+        hexFormat(j, uuid);
         return uuid.toString();
     }
 
-    private static int getInt(byte abyte0[])
-    {
+    private static int getInt(byte abyte0[]) {
         int i = 0;
         int j = 24;
-        for (int k = 0 ; j >= 0 ; k++)
-        {
+        for (int k = 0; j >= 0; k++) {
             int l = abyte0[k] & 0xff;
             i += l << j;
             j -= 8;
@@ -98,17 +88,15 @@ public final class UUIDProvider {
         return i;
     }
 
-    private static String hexFormat(int i)
-    {
+    private static String hexFormat(int i) {
         StringBuilder sb = new StringBuilder(8);
-        hexFormat(i,sb);
+        hexFormat(i, sb);
         return sb.toString();
     }
 
-    private static void hexFormat(int i, StringBuilder uuid)
-    {
+    private static void hexFormat(int i, StringBuilder uuid) {
         String s = Integer.toHexString(i);
-        for (int n = 0 ; n < 8 - s.length() ; n++)
+        for (int n = 0; n < 8 - s.length(); n++)
             uuid.append("0");
         uuid.append(s);
     }
