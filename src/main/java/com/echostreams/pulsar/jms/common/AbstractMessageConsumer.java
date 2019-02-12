@@ -1,12 +1,16 @@
 package com.echostreams.pulsar.jms.common;
 
+import com.echostreams.pulsar.jms.utils.ErrorTools;
 import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 import com.echostreams.pulsar.jms.utils.id.IntegerID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 import javax.jms.IllegalStateException;
 
 public abstract class AbstractMessageConsumer extends AbstractMessageHandler implements MessageConsumer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMessageConsumer.class);
 
     // Attributes
     protected String messageSelector;
@@ -33,12 +37,12 @@ public abstract class AbstractMessageConsumer extends AbstractMessageHandler imp
 
     @Override
     public String getMessageSelector() throws JMSException {
-        return null;
+        return messageSelector;
     }
 
     @Override
     public MessageListener getMessageListener() throws JMSException {
-        return null;
+        return messageListener;
     }
 
     @Override
@@ -54,7 +58,7 @@ public abstract class AbstractMessageConsumer extends AbstractMessageHandler imp
 
     @Override
     public Message receive() throws JMSException {
-        return null;
+        return receive(-1);
     }
 
     @Override
@@ -77,7 +81,7 @@ public abstract class AbstractMessageConsumer extends AbstractMessageHandler imp
 
     @Override
     public Message receiveNoWait() throws JMSException {
-        return null;
+        return receive(0);
     }
 
     @Override
@@ -109,5 +113,56 @@ public abstract class AbstractMessageConsumer extends AbstractMessageHandler imp
 
     protected abstract AbstractMessage receiveFromDestination(long timeout, boolean duplicateRequired) throws JMSException;
 
+    public final void wakeUpMessageListener()
+    {
+        try
+        {
+            while (!closed)
+            {
+                synchronized (session.deliveryLock) // [JMS spec]
+                {
+                    AbstractMessage message = receiveFromDestination(0,true);
+                    if (message == null)
+                        break;
+
+                    // Make sure the message is properly deserialized
+                    message.ensureDeserializationLevel(MessageSerializationLevel.FULL);
+
+                    // Make sure the message's session is set
+                    message.setSession(session);
+
+                    // Call the message listener
+                    boolean listenerFailed = false;
+                    try
+                    {
+                        messageListener.onMessage(message);
+                    }
+                    catch (Throwable e)
+                    {
+                        listenerFailed = true;
+                        if (shouldLogListenersFailures())
+                            LOGGER.error("Message listener failed",e);
+                    }
+
+                    // Auto acknowledge message
+                    if (autoAcknowledge)
+                    {
+                        if (listenerFailed)
+                            session.recover();
+                        else
+                            session.acknowledge();
+                    }
+                }
+            }
+        }
+        catch (JMSException e)
+        {
+            ErrorTools.log(e, LOGGER);
+        }
+    }
+
+    protected abstract boolean shouldLogListenersFailures();
+
+    protected abstract void wakeUp() throws JMSException;
 
 }

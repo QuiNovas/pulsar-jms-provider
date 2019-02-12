@@ -1,5 +1,6 @@
 package com.echostreams.pulsar.jms.common;
 
+import com.echostreams.pulsar.jms.common.destination.DestinationSerializer;
 import com.echostreams.pulsar.jms.common.destination.DestinationTools;
 import com.echostreams.pulsar.jms.utils.EmptyEnumeration;
 import com.echostreams.pulsar.jms.utils.IteratorEnumeration;
@@ -11,6 +12,7 @@ import java.lang.IllegalStateException;
 import java.lang.ref.WeakReference;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 public abstract class AbstractMessage implements Message {
@@ -154,7 +156,7 @@ public abstract class AbstractMessage implements Message {
     }
 
     @Override
-    public void setJMSType(String s) throws JMSException {
+    public void setJMSType(String type) throws JMSException {
         assertDeserializationLevel(MessageSerializationLevel.FULL);
         this.type = type;
     }
@@ -404,4 +406,115 @@ public abstract class AbstractMessage implements Message {
 
     protected abstract void unserializeBodyFrom(RawDataBuffer in);
 
+    public final RawDataBuffer getRawMessage()
+    {
+        return rawMessage;
+    }
+
+    public final synchronized void ensureDeserializationLevel( int targetLevel )
+    {
+        if (rawMessage == null)
+            return; // Not a serialized message or fully deserialized message
+
+        while (unserializationLevel < targetLevel)
+        {
+            if (unserializationLevel == MessageSerializationLevel.BASE_HEADERS)
+            {
+                // Read level 2 headers
+                byte lvl2Flags = rawMessage.readByte();
+                if ((lvl2Flags & (1 << 0)) != 0) correlId = rawMessage.readUTF();
+                if ((lvl2Flags & (1 << 1)) != 0) replyTo = DestinationSerializer.unserializeFrom(rawMessage);
+                if ((lvl2Flags & (1 << 2)) != 0) timestamp = rawMessage.readLong();
+                if ((lvl2Flags & (1 << 3)) != 0) type = rawMessage.readUTF();
+                if ((lvl2Flags & (1 << 4)) != 0) propertyMap = readMapFrom(rawMessage);
+
+                unserializationLevel = MessageSerializationLevel.ALL_HEADERS;
+            }
+            else
+            if (unserializationLevel == MessageSerializationLevel.ALL_HEADERS)
+            {
+                // Read level 3 - message body
+                unserializeBodyFrom(rawMessage);
+                unserializationLevel = MessageSerializationLevel.FULL;
+                rawMessage = null; // Save memory
+            }
+        }
+    }
+
+    /**
+     * Write a map to the given output stream
+     */
+    protected final Map<String,Object> readMapFrom( RawDataBuffer in )
+    {
+        int mapSize = in.readInt();
+        if (mapSize == 0)
+            return null;
+
+        Map<String,Object> map = new HashMap<>(Math.max(17,mapSize*4/3));
+        for (int n = 0 ; n < mapSize ; n++)
+        {
+            String propName = in.readUTF();
+            Object propValue = in.readGeneric();
+            map.put(propName,propValue);
+        }
+
+        return map;
+    }
+
+    public final boolean isInternalCopy()
+    {
+        return internalCopy;
+    }
+
+    public final void setInternalCopy(boolean copy)
+    {
+        this.internalCopy = copy;
+    }
+
+    @Override
+    public String toString()
+    {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("[messageId=");
+        sb.append(id);
+        sb.append(" priority=");
+        sb.append(priority);
+        sb.append(" correlId=");
+        sb.append(correlId);
+        sb.append(" deliveryMode=");
+        sb.append(deliveryMode);
+        sb.append(" destination=");
+        sb.append(destination);
+        sb.append(" expiration=");
+        sb.append(expiration);
+        sb.append(" redelivered=");
+        sb.append(redelivered);
+        sb.append(" replyTo=");
+        sb.append(replyTo);
+        sb.append(" timestamp=");
+        sb.append(timestamp);
+        sb.append(" type=");
+        sb.append(type);
+
+        if (propertyMap != null && propertyMap.size() > 0)
+        {
+            sb.append(" properties=");
+            Iterator<String> allProps = propertyMap.keySet().iterator();
+            int count = 0;
+            while (allProps.hasNext())
+            {
+                String propName = allProps.next();
+                Object propValue = propertyMap.get(propName);
+                if (count++ > 0)
+                    sb.append(",");
+                sb.append(propName);
+                sb.append("=");
+                sb.append(propValue);
+            }
+        }
+        sb.append("]");
+
+        return sb.toString();
+    }
 }
