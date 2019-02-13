@@ -24,7 +24,7 @@ public class PulsarQueueSession extends PulsarSession implements QueueSession {
         externalAccessLock.readLock().lock();
         try {
             checkNotClosed();
-            PulsarQueueReceiver receiver = new PulsarQueueReceiver(pul, this, queue, messageSelector, idProvider.createID());
+            PulsarQueueReceiver receiver = new PulsarQueueReceiver(pulsarJMSProvider, this, queue, messageSelector, idProvider.createID());
             registerConsumer(receiver);
             receiver.initDestination();
             return receiver;

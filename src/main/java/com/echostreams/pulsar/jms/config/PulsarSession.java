@@ -1,14 +1,24 @@
 package com.echostreams.pulsar.jms.config;
 
 import com.echostreams.pulsar.jms.PulsarJMSProvider;
+import com.echostreams.pulsar.jms.common.AbstractDestination;
 import com.echostreams.pulsar.jms.common.AbstractMessage;
 import com.echostreams.pulsar.jms.common.AbstractSession;
+import com.echostreams.pulsar.jms.common.destination.TemporaryQueueRef;
+import com.echostreams.pulsar.jms.common.destination.TemporaryTopicRef;
+import com.echostreams.pulsar.jms.message.PulsarMessageConsumer;
+import com.echostreams.pulsar.jms.queue.PulsarQueue;
+import com.echostreams.pulsar.jms.queue.PulsarQueueBrowser;
+import com.echostreams.pulsar.jms.topic.PulsarDurableTopicSubscriber;
+import com.echostreams.pulsar.jms.utils.PulsarJMSException;
+import com.echostreams.pulsar.jms.utils.StringRelatedUtils;
 import com.echostreams.pulsar.jms.utils.id.IntegerID;
+import com.echostreams.pulsar.jms.utils.id.UUIDProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jms.*;
 import javax.jms.IllegalStateException;
-import javax.jms.JMSException;
 import java.util.List;
 import java.util.Vector;
 
@@ -50,6 +60,77 @@ public class PulsarSession extends AbstractSession {
     @Override
     public void recover() throws JMSException {
         recover(null);
+    }
+
+    @Override
+    public MessageConsumer createConsumer(Destination destination, String messageSelector, boolean noLocal) throws JMSException
+    {
+        return createConsumer(idProvider.createID(), destination, messageSelector, noLocal);
+    }
+
+    @Override
+    public TopicSubscriber createDurableSubscriber(Topic topic, String subscriptionName, String messageSelector, boolean noLocal) throws JMSException
+    {
+        return createDurableSubscriber(idProvider.createID(), topic, subscriptionName, messageSelector, noLocal);
+    }
+
+    @Override
+    public QueueBrowser createBrowser(Queue queueRef, String messageSelector) throws JMSException {
+        return createBrowser(idProvider.createID(), queueRef, messageSelector);
+    }
+
+    @Override
+    public TemporaryQueue createTemporaryQueue() throws JMSException {
+        externalAccessLock.readLock().lock();
+        try
+        {
+            checkNotClosed();
+            String queueName = "TEMP-QUEUE-"+ UUIDProvider.getInstance().getShortUUID();
+            pulsarJMSProvider.createTemporaryQueue(queueName);
+            connection.registerTemporaryQueue(queueName);
+
+            return new TemporaryQueueRef(connection,queueName);
+        }
+        finally
+        {
+            externalAccessLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public TemporaryTopic createTemporaryTopic() throws JMSException {
+        externalAccessLock.readLock().lock();
+        try
+        {
+            checkNotClosed();
+            String topicName = "TEMP-TOPIC-"+UUIDProvider.getInstance().getShortUUID();
+            pulsarJMSProvider.createTemporaryTopic(topicName);
+            connection.registerTemporaryTopic(topicName);
+
+            return new TemporaryTopicRef(connection,topicName);
+        }
+        finally
+        {
+            externalAccessLock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public void unsubscribe(String subscriptionName) throws JMSException {
+        externalAccessLock.readLock().lock();
+        try
+        {
+            checkNotClosed();
+            if (StringRelatedUtils.isEmpty(subscriptionName))
+                throw new PulsarJMSException("Empty subscription name","INVALID_SUBSCRIPTION_NAME");
+
+            // Remove remaining subscriptions on all topics
+            pulsarJMSProvider.unsubscribe(connection.getClientID(), subscriptionName);
+        }
+        finally
+        {
+            externalAccessLock.readLock().unlock();
+        }
     }
 
     @Override
@@ -369,5 +450,93 @@ public class PulsarSession extends AbstractSession {
             externalAccessLock.readLock().unlock();
         }
     }
+
+    public MessageConsumer createConsumer(IntegerID consumerId,Destination destination, String messageSelector, boolean noLocal) throws JMSException
+    {
+        externalAccessLock.readLock().lock();
+        try
+        {
+            checkNotClosed();
+            PulsarMessageConsumer consumer = new PulsarMessageConsumer(pulsarJMSProvider,this,destination,messageSelector,noLocal,consumerId,null);
+            registerConsumer(consumer);
+            consumer.initDestination();
+            return consumer;
+        }
+        finally
+        {
+            externalAccessLock.readLock().unlock();
+        }
+    }
+
+    private AbstractDestination getLocalDestination( AbstractMessage message ) throws JMSException
+    {
+        Destination destination = message.getJMSDestination();
+
+        if (destination instanceof Queue)
+        {
+            Queue queueRef = (Queue)destination;
+            return pulsarJMSProvider.getPulsarQueue(queueRef.getQueueName());
+        }
+        else
+        if (destination instanceof Topic)
+        {
+            Topic topicRef = (Topic)destination;
+            return pulsarJMSProvider.getPulsarTopic(topicRef.getTopicName());
+        }
+        else
+            throw new InvalidDestinationException("Unsupported destination : "+destination);
+    }
+
+    public QueueBrowser createBrowser(IntegerID browserId,Queue queueRef, String messageSelector) throws JMSException
+    {
+        externalAccessLock.readLock().lock();
+        try
+        {
+            checkNotClosed();
+            PulsarQueue pulsarQueue = pulsarJMSProvider.getPulsarQueue(queueRef.getQueueName());
+
+            // Check temporary destinations scope (JMS Spec 4.4.3 p2)
+            checkTemporaryDestinationScope(pulsarQueue);
+
+           PulsarQueueBrowser browser = new PulsarQueueBrowser(this,pulsarQueue,messageSelector,browserId);
+            registerBrowser(browser);
+            return browser;
+        }
+        finally
+        {
+            externalAccessLock.readLock().unlock();
+        }
+    }
+
+    public TopicSubscriber createDurableSubscriber(IntegerID consumerId, Topic topic, String subscriptionName, String messageSelector, boolean noLocal) throws JMSException
+    {
+        if (StringRelatedUtils.isEmpty(subscriptionName))
+            throw new PulsarJMSException("Empty subscription name","INVALID_SUBSCRIPTION_NAME");
+
+        externalAccessLock.readLock().lock();
+        try
+        {
+            checkNotClosed();
+
+            // Get the client ID
+            String clientID = connection.getClientID();
+
+            // Create the consumer
+            String subscriberId = clientID+"-"+subscriptionName;
+            PulsarDurableTopicSubscriber subscriber = new PulsarDurableTopicSubscriber(pulsarJMSProvider,this,topic,messageSelector,noLocal,consumerId,subscriberId);
+            registerConsumer(subscriber);
+            subscriber.initDestination();
+
+            // Register the subscription
+            pulsarJMSProvider.subscribe(clientID, subscriptionName);
+
+            return subscriber;
+        }
+        finally
+        {
+            externalAccessLock.readLock().unlock();
+        }
+    }
+
 
 }

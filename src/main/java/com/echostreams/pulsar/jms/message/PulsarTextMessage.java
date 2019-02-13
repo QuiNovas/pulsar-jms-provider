@@ -16,6 +16,12 @@ public class PulsarTextMessage extends AbstractMessage implements TextMessage {
         super();
     }
 
+    public PulsarTextMessage( String text ) throws JMSException
+    {
+        super();
+        setText(text);
+    }
+
     @Override
     protected byte getType() {
         return MessageGroup.TEXT;

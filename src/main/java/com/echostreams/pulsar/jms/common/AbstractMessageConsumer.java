@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
-import javax.jms.IllegalStateException;
 
 public abstract class AbstractMessageConsumer extends AbstractMessageHandler implements MessageConsumer {
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMessageConsumer.class);
@@ -104,11 +103,6 @@ public abstract class AbstractMessageConsumer extends AbstractMessageHandler imp
 
     protected void onConsumerClosed() {
         // Nothing
-    }
-
-    protected final void checkNotClosed() throws JMSException {
-        if (closed)
-            throw new IllegalStateException("Message handler is closed"); // [JMS SPEC]
     }
 
     protected abstract AbstractMessage receiveFromDestination(long timeout, boolean duplicateRequired) throws JMSException;

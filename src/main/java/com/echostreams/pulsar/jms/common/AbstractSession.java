@@ -159,38 +159,13 @@ public abstract class AbstractSession implements Session {
     }
 
     @Override
-    public TopicSubscriber createDurableSubscriber(Topic topic, String s) throws JMSException {
-        return null;
-    }
-
-    @Override
-    public TopicSubscriber createDurableSubscriber(Topic topic, String s, String s1, boolean b) throws JMSException {
-        return null;
+    public TopicSubscriber createDurableSubscriber(Topic topic, String name) throws JMSException {
+        return createDurableSubscriber(topic,name,null,false);
     }
 
     @Override
     public QueueBrowser createBrowser(Queue queue) throws JMSException {
-        return null;
-    }
-
-    @Override
-    public QueueBrowser createBrowser(Queue queue, String s) throws JMSException {
-        return null;
-    }
-
-    @Override
-    public TemporaryQueue createTemporaryQueue() throws JMSException {
-        return null;
-    }
-
-    @Override
-    public TemporaryTopic createTemporaryTopic() throws JMSException {
-        return null;
-    }
-
-    @Override
-    public void unsubscribe(String s) throws JMSException {
-
+        return createBrowser(queue,null);
     }
 
     protected void onSessionClose() {
