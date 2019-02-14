@@ -12,12 +12,12 @@ import javax.jms.TopicSubscriber;
 
 public class PulsarTopicSubscriber extends PulsarMessageConsumer implements TopicSubscriber {
 
-    public PulsarTopicSubscriber(PulsarJMSProvider pulsarJMSProvider, PulsarSession session, Destination destination, String messageSelector, boolean noLocal, IntegerID consumerId, String subscriberId) {
+    public PulsarTopicSubscriber(PulsarJMSProvider pulsarJMSProvider, PulsarSession session, Destination destination, String messageSelector, boolean noLocal, IntegerID consumerId, String subscriberId) throws JMSException {
         super(pulsarJMSProvider, session, destination, messageSelector, noLocal, consumerId, subscriberId);
     }
 
     @Override
     public Topic getTopic() throws JMSException {
-        return (Topic)destination;
+        return (Topic) destination;
     }
 }

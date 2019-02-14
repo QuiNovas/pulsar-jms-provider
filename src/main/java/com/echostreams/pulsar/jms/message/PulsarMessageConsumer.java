@@ -3,6 +3,7 @@ package com.echostreams.pulsar.jms.message;
 import com.echostreams.pulsar.jms.PulsarJMSProvider;
 import com.echostreams.pulsar.jms.common.AbstractMessage;
 import com.echostreams.pulsar.jms.common.AbstractMessageConsumer;
+import com.echostreams.pulsar.jms.common.destination.NotificationProxy;
 import com.echostreams.pulsar.jms.config.PulsarConfiguration;
 import com.echostreams.pulsar.jms.config.PulsarSession;
 import com.echostreams.pulsar.jms.queue.PulsarQueue;

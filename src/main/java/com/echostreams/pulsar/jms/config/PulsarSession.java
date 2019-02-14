@@ -4,12 +4,14 @@ import com.echostreams.pulsar.jms.PulsarJMSProvider;
 import com.echostreams.pulsar.jms.common.AbstractDestination;
 import com.echostreams.pulsar.jms.common.AbstractMessage;
 import com.echostreams.pulsar.jms.common.AbstractSession;
+import com.echostreams.pulsar.jms.common.destination.NotificationProxy;
 import com.echostreams.pulsar.jms.common.destination.TemporaryQueueRef;
 import com.echostreams.pulsar.jms.common.destination.TemporaryTopicRef;
 import com.echostreams.pulsar.jms.message.PulsarMessageConsumer;
 import com.echostreams.pulsar.jms.queue.PulsarQueue;
 import com.echostreams.pulsar.jms.queue.PulsarQueueBrowser;
 import com.echostreams.pulsar.jms.topic.PulsarDurableTopicSubscriber;
+import com.echostreams.pulsar.jms.utils.Committable;
 import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 import com.echostreams.pulsar.jms.utils.StringRelatedUtils;
 import com.echostreams.pulsar.jms.utils.id.IntegerID;
@@ -19,8 +21,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 import javax.jms.IllegalStateException;
-import java.util.List;
-import java.util.Vector;
+import javax.jms.Queue;
+import java.util.*;
 
 public class PulsarSession extends AbstractSession {
 
@@ -35,7 +37,7 @@ public class PulsarSession extends AbstractSession {
     //private boolean debugEnabled = log.isDebugEnabled();
 
     // For internal use by the remote layer
-    //protected NotificationProxy notificationProxy;
+    protected NotificationProxy notificationProxy;
 
     // Message stats
     private long consumedCount;
@@ -165,7 +167,7 @@ public class PulsarSession extends AbstractSession {
     }
 
     private void commitUpdates(boolean commitGets, List<String> deliveredMessageIDs, boolean commitPuts) throws JMSException {
-        /*SynchronizationBarrier commitBarrier = null;
+        SynchronizationBarrier commitBarrier = null;
         List<PulsarQueue> queuesWithGet = null;
         MessageLockSet locks = null;
         JMSException putFailure = null;
@@ -320,7 +322,7 @@ public class PulsarSession extends AbstractSession {
                 MessageLock item = locks.get(i);
                 item.getDestination().unlockAndDeliver(item);
             }
-        }*/
+        }
     }
 
     public final void rollback(boolean rollbackGets, List<String> deliveredMessageIDs) throws JMSException {
@@ -535,6 +537,145 @@ public class PulsarSession extends AbstractSession {
         finally
         {
             externalAccessLock.readLock().unlock();
+        }
+    }
+
+    public final void setNotificationProxy(NotificationProxy notificationProxy)
+    {
+        this.notificationProxy = notificationProxy;
+    }
+
+    public final NotificationProxy getNotificationProxy()
+    {
+        return notificationProxy;
+    }
+
+    public final void rollbackUndelivered( List<String> undeliveredMessageIDs ) throws JMSException
+    {
+        externalAccessLock.readLock().lock();
+        try
+        {
+            checkNotClosed();
+            rollbackUpdates(false,true, undeliveredMessageIDs);
+        }
+        finally
+        {
+            externalAccessLock.readLock().unlock();
+        }
+    }
+
+    private List<Committable> computeLocalTargetDestinations( List<AbstractMessage> pendingPuts , List<PulsarQueue> queuesWithGet ) throws JMSException
+    {
+        int initialSize = Math.max((pendingPuts != null ? pendingPuts.size() : 0)+
+                (queuesWithGet != null ? queuesWithGet.size() : 0),16);
+        List<Committable> targetCommitables = new ArrayList<>(initialSize);
+
+        if (queuesWithGet != null)
+            targetCommitables.addAll(queuesWithGet);
+
+        if (pendingPuts != null)
+        {
+            for (int i = 0 ; i < pendingPuts.size() ; i++)
+            {
+                AbstractMessage msg = pendingPuts.get(i);
+                AbstractDestination destination = getLocalDestination(msg);
+                if (!targetCommitables.contains(destination))
+                    targetCommitables.add(destination);
+            }
+        }
+
+        // Sort list (important to avoid deadlocks when locking destinations for update)
+        Collections.sort(targetCommitables, DESTINATION_COMPARATOR);
+
+        return targetCommitables;
+    }
+
+    public final void dispatch( AbstractMessage message ) throws JMSException
+    {
+        // Security
+        LocalConnection conn = (LocalConnection)getConnection();
+        if (conn.isSecurityEnabled())
+        {
+            Destination destination = message.getJMSDestination();
+            if (destination instanceof Queue)
+            {
+                String queueName = ((Queue)destination).getQueueName();
+                if (conn.isRegisteredTemporaryQueue(queueName))
+                {
+                    // OK, temporary destination
+                }
+                else
+                if (queueName.equals(FFMQConstants.ADM_REQUEST_QUEUE))
+                {
+                    conn.checkPermission(Resource.SERVER, Action.REMOTE_ADMIN);
+                }
+                else
+                if (queueName.equals(FFMQConstants.ADM_REPLY_QUEUE))
+                {
+                    // Only the internal admin thread can produce on this queue
+                    if (conn.getSecurityContext() != null)
+                        throw new FFMQException("Access denied to administration queue "+queueName,"ACCESS_DENIED");
+                }
+                else
+                {
+                    // Standard queue
+                    conn.checkPermission(destination,Action.PRODUCE);
+                }
+            }
+            else
+            if (destination instanceof Topic)
+            {
+                String topicName = ((Topic)destination).getTopicName();
+                if (conn.isRegisteredTemporaryTopic(topicName))
+                {
+                    // OK, temporary destination
+                }
+                else
+                {
+                    // Standard topic
+                    conn.checkPermission(destination,Action.PRODUCE);
+                }
+            }
+            else
+                throw new InvalidDestinationException("Unsupported destination : "+destination);
+        }
+
+        if (debugEnabled)
+            log.debug(this+" [PUT] in "+message.getJMSDestination()+" - "+message);
+
+        externalAccessLock.readLock().lock();
+        try
+        {
+            checkNotClosed();
+
+            pendingPuts.add(message);
+
+            if (!transacted)
+                commitUpdates(false, null, true); // FIXME Async commit ?
+        }
+        finally
+        {
+            externalAccessLock.readLock().unlock();
+        }
+    }
+
+    private static final DestinationComparator DESTINATION_COMPARATOR = new DestinationComparator();
+
+    private static final class DestinationComparator implements Comparator<Committable>
+    {
+        public DestinationComparator()
+        {
+            super();
+        }
+
+        @Override
+        public int compare(Committable c1, Committable c2)
+        {
+            int delta = c1.getName().compareTo(c2.getName());
+            if (delta != 0)
+                return delta;
+
+            return c1.getClass().getName().compareTo(c2.getClass().getName());
         }
     }
 

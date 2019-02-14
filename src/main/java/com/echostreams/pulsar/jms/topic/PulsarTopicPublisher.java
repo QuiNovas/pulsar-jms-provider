@@ -8,40 +8,32 @@ import javax.jms.*;
 
 public class PulsarTopicPublisher extends PulsarMessageProducer implements TopicPublisher {
 
-    public PulsarTopicPublisher(PulsarSession session, Destination destination, IntegerID publisherId) throws JMSException
-    {
+    public PulsarTopicPublisher(PulsarSession session, Destination destination, IntegerID publisherId) throws JMSException {
         super(session, destination, publisherId);
     }
 
-
-
     @Override
     public Topic getTopic() throws JMSException {
-        return (Topic)destination;
+        return (Topic) destination;
     }
 
     @Override
     public void publish(Message message) throws JMSException {
-
+        send(message);
     }
 
     @Override
-    public void publish(Message message, int i, int i1, long l) throws JMSException {
-
+    public void publish(Message message, int deliveryMode, int priority, long timeToLive) throws JMSException {
+        send(message, deliveryMode, priority, timeToLive);
     }
 
     @Override
     public void publish(Topic topic, Message message) throws JMSException {
-
+        send(topic, message);
     }
 
     @Override
-    public void publish(Topic topic, Message message, int i, int i1, long l) throws JMSException {
-
-    }
-
-    @Override
-    protected void sendToDestination(Destination destination, boolean destinationOverride, Message srcMessage, int deliveryMode, int priority, long timeToLive) throws JMSException {
-
+    public void publish(Topic topic, Message message, int deliveryMode, int priority, long timeToLive) throws JMSException {
+        send(topic, message, deliveryMode, priority, timeToLive);
     }
 }

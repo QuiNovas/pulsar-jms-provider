@@ -10,9 +10,8 @@ import javax.jms.QueueReceiver;
 
 public class PulsarQueueReceiver extends PulsarMessageConsumer implements QueueReceiver {
 
-    public PulsarQueueReceiver(PulsarJMSProvider pulsarJMSProvider, PulsarQueueSession pulsarQueueSession, Queue queue, String messageSelector, IntegerID id) {
-        super(pulsarJMSProvider, pulsarQueueSession, queue, messageSelector,false, id, null);
-        super(engine,session,queue,messageSelector,false,receiverId,null);
+    public PulsarQueueReceiver(PulsarJMSProvider pulsarJMSProvider, PulsarQueueSession session, Queue queue, String messageSelector, IntegerID receiverId) throws JMSException {
+        super(pulsarJMSProvider, session, queue, messageSelector,false, receiverId, null);
     }
 
     @Override
