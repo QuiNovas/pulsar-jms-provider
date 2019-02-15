@@ -2,6 +2,7 @@ package com.echostreams.pulsar.jms.queue;
 
 import com.echostreams.pulsar.jms.common.AbstractQueueBrowser;
 import com.echostreams.pulsar.jms.common.AbstractSession;
+import com.echostreams.pulsar.jms.common.PulsarQueueBrowserEnumeration;
 import com.echostreams.pulsar.jms.utils.id.IntegerID;
 import com.echostreams.pulsar.jms.utils.id.UUIDProvider;
 

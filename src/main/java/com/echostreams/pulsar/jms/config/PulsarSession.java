@@ -14,6 +14,7 @@ import com.echostreams.pulsar.jms.topic.PulsarDurableTopicSubscriber;
 import com.echostreams.pulsar.jms.utils.Committable;
 import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 import com.echostreams.pulsar.jms.utils.StringRelatedUtils;
+import com.echostreams.pulsar.jms.utils.SynchronizationBarrier;
 import com.echostreams.pulsar.jms.utils.id.IntegerID;
 import com.echostreams.pulsar.jms.utils.id.UUIDProvider;
 import org.slf4j.Logger;

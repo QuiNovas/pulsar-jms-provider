@@ -118,4 +118,9 @@ public class PulsarMessageConsumer extends AbstractMessageConsumer {
     {
         return false;
     }
+
+    public final String getSubscriberId()
+    {
+        return subscriberId;
+    }
 }

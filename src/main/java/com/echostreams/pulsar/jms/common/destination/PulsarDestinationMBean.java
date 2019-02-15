@@ -17,8 +17,6 @@
  */
 package com.echostreams.pulsar.jms.common.destination;
 
-import net.timewalker.ffmq4.management.destination.DestinationDescriptorMBean;
-
 /**
  * <p>JMX interface for a local JMS destination</p>
  */

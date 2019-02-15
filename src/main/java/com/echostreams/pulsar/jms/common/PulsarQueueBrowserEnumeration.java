@@ -15,7 +15,7 @@ public final class PulsarQueueBrowserEnumeration extends AbstractQueueBrowserEnu
 	// Runtime
 	private AbstractMessage nextMessage;
 
-	protected PulsarQueueBrowserEnumeration(PulsarQueueBrowser browser, PulsarQueue pulsarQueue, String messageSelector, String enumId)
+	public PulsarQueueBrowserEnumeration(PulsarQueueBrowser browser, PulsarQueue pulsarQueue, String messageSelector, String enumId)
 	{
 		super(browser,enumId);
 		this.pulsarQueue = pulsarQueue;
