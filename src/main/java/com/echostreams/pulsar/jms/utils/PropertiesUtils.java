@@ -8,6 +8,13 @@ public class PropertiesUtils {
     public static PropertiesUtils propertiesUtils;
     public Properties prop;
 
+    static {
+        if (propertiesUtils == null) {
+            propertiesUtils = new PropertiesUtils();
+        }
+
+    }
+
     private PropertiesUtils() {
         prop = new Properties();
         InputStream inputStream;
@@ -23,13 +30,7 @@ public class PropertiesUtils {
 
     }
 
-    public static synchronized PropertiesUtils getDataFromPropFile() {
-        if (propertiesUtils == null) {
-            propertiesUtils = new PropertiesUtils();
-        }
-        return propertiesUtils;
 
-    }
 
     public String getServiceUrl() {
         return prop.getProperty("pulsar.serviceUrl");

@@ -353,7 +353,7 @@ public abstract class AbstractMessage implements Message {
         if (acknowledgeMode != Session.CLIENT_ACKNOWLEDGE)
             return; // Ignore [JMS SPEC]
 
-        //session.acknowledge();
+        session.acknowledge();
     }
 
     protected final synchronized void assertDeserializationLevel(int targetLevel) {

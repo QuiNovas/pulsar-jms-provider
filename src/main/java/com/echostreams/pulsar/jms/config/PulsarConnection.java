@@ -13,6 +13,10 @@ public class PulsarConnection extends AbstractConnection {
 
     protected PulsarJMSProvider pulsarJMSProvider;
 
+    public PulsarConnection(String clientID) {
+        super(clientID);
+    }
+
     public PulsarConnection(PulsarJMSProvider pulsarJMSProvider, String clientID) {
         super(clientID);
         this.pulsarJMSProvider = pulsarJMSProvider;

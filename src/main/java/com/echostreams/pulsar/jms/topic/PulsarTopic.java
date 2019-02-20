@@ -1,13 +1,21 @@
 package com.echostreams.pulsar.jms.topic;
 
-import com.echostreams.pulsar.jms.common.AbstractDestination;
+import com.echostreams.pulsar.jms.config.PulsarDestination;
 
 import javax.jms.JMSException;
 import javax.jms.Topic;
 
-public class PulsarTopic extends AbstractDestination implements Topic {
+public class PulsarTopic extends PulsarDestination implements Topic {
+
+    public PulsarTopic() {
+    }
+
+    public PulsarTopic(String name) {
+        super(name);
+    }
+
     @Override
     public String getTopicName() throws JMSException {
-        return null;
+        return getPhysicalName();
     }
 }
