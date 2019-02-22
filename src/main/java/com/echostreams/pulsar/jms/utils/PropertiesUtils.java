@@ -31,7 +31,6 @@ public class PropertiesUtils {
     }
 
 
-
     public String getServiceUrl() {
         return prop.getProperty("pulsar.serviceUrl");
     }
