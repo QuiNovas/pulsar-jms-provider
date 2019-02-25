@@ -1,10 +1,9 @@
 package com.echostreams.pulsar.jms;
 
-import com.echostreams.pulsar.jms.client.PulsarDestination;
 import org.apache.pulsar.client.api.Consumer;
 
 import javax.jms.*;
-import java.util.*;
+import java.util.Properties;
 
 public class PulsarMessageConsumer implements MessageConsumer {
     private Consumer<Message> consumer;
@@ -23,9 +22,9 @@ public class PulsarMessageConsumer implements MessageConsumer {
      */
     public PulsarMessageConsumer(Properties config, Destination destination) throws JMSException {
         //TODO need to map with pulsar consumer
-        consumer = new KafkaConsumer<String, Message>(config);
+/*        consumer = new KafkaConsumer<String, Message>(config);
         this.destination = destination;
-        consumer.subscribe(Arrays.asList(this.destination.getName()));
+        consumer.subscribe(Arrays.asList(this.destination.getName()));*/
     }
 
     /* (non-Javadoc)
@@ -59,13 +58,14 @@ public class PulsarMessageConsumer implements MessageConsumer {
      */
     @Override
     public Message receive() throws JMSException {
-        subscribe();
+/*        subscribe();
         //TODO need to map with pulsar consumer
         ConsumerRecords<String, Message> records = null;
         while (null == records) {
             records = consumer.poll(0);
         }
-        return process(records);
+        return process(records);*/
+        return null;
     }
 
     /* (non-Javadoc)
@@ -76,8 +76,9 @@ public class PulsarMessageConsumer implements MessageConsumer {
         // Map<"topic name", ConsumerRecords<"trace_id", PulsarMessage>>
         subscribe();
         //TODO need to map with pulsar consumer
-        ConsumerRecords<String, Message> records = consumer.poll(timeout);
-        return process(records);
+        /*ConsumerRecords<String, Message> records = consumer.poll(timeout);
+        return process(records);*/
+        return null;
     }
 
     /* (non-Javadoc)
@@ -89,7 +90,7 @@ public class PulsarMessageConsumer implements MessageConsumer {
     }
 
     //private List<Message> process(ConsumerRecords<String, Message> consumerRecords) throws JMSException{
-    private Message process(ConsumerRecords<String, Message> consumerRecords) throws JMSException {
+/*    private Message process(ConsumerRecords<String, Message> consumerRecords) throws JMSException {
         List<Message> results = new ArrayList<Message>();
         //TODO need to map with pulsar consumer
         Iterable<ConsumerRecord<String, Message>> records = consumerRecords.records(destination.getName());
@@ -109,7 +110,7 @@ public class PulsarMessageConsumer implements MessageConsumer {
             //results.add(message);
         }
         return null;
-    }
+    }*/
 
     public void commit() {
         // NOOP
@@ -121,16 +122,18 @@ public class PulsarMessageConsumer implements MessageConsumer {
     @Override
     public void close() throws JMSException {
         unsubscribe();
-        consumer.close();
+        //TODO need to map with pulsar consumer
+        //consumer.close();
     }
 
     void subscribe() throws JMSException {
         //TODO need to map with pulsar consumer
-        consumer.subscribe(Arrays.asList(this.destination.getName()));
+        //consumer.subscribe(Arrays.asList(this.destination.getName()));
     }
 
     public void unsubscribe() throws JMSException {
-        consumer.unsubscribe();
+        //TODO need to map with pulsar consumer
+       // consumer.unsubscribe();
     }
 
 }

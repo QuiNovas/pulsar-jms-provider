@@ -2,23 +2,25 @@ package com.echostreams.pulsar.jms;
 
 import com.echostreams.pulsar.jms.client.PulsarConnection;
 import com.echostreams.pulsar.jms.client.PulsarDestination;
-import org.apache.pulsar.client.api.CompressionType;
+import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.ProducerBuilderImpl;
-import org.apache.pulsar.client.impl.ProducerImpl;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 import java.util.Properties;
 
 public class PulsarMessageProducer implements MessageProducer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PulsarMessageProducer.class);
     private static final int DEFAULT_PRIORITY = 4;
     private static final int DEFAULT_DELIERY_MODE = DeliveryMode.PERSISTENT;
     private static final int DEFAULT_TTL = 60000;
     private Producer<Message> producer;
-    private Destination destination;
+    private PulsarDestination destination;
     private boolean disbledMessageId;
     private boolean disableMessageTimestamp;
     private int deliveryMode = DEFAULT_DELIERY_MODE;
@@ -31,13 +33,13 @@ public class PulsarMessageProducer implements MessageProducer {
      * @param destination
      * @param connection
      */
-    public PulsarMessageProducer(Properties config, Destination destination, PulsarConnection connection) throws PulsarClientException {
-        this.destination = destination;
+    public PulsarMessageProducer(Properties config, Destination destination, PulsarConnection connection) throws PulsarClientException, JMSException {
+        this.destination = (PulsarDestination) destination;
         //this.producer = new KafkaProducer<String, Message>(config);
         //TODO need to map with pulsar producer
-        this.producer = new ProducerImpl<Message>(config);
 
-        this.producer = new ProducerBuilderImpl((PulsarClientImpl) connection.getClient(), Schema.BYTES).create();
+
+        this.producer = new ProducerBuilderImpl((PulsarClientImpl) connection.getClient(), Schema.BYTES).topic(((PulsarDestination) destination).getName()).create();
     }
 
     /*
@@ -229,11 +231,14 @@ public class PulsarMessageProducer implements MessageProducer {
     public void send(Destination destination, Message message,
                      int deliveryMode, int priority, long timeToLive)
             throws JMSException {
-        String name = ((PulsarDestination) destination).getName();
-        //TODO need to map with pulsar producer
-        ProducerRecord<String, Message> data = new ProducerRecord<String, Message>(
-                name, message.getStringProperty("traceId"), message);
-        producer.send(data);
+        // Send each message and log message content and ID when successfully received
+        MessageId msgId = null;
+        try {
+            msgId = producer.send(message);
+        } catch (PulsarClientException e) {
+            LOGGER.error(e.getMessage());
+        }
+        LOGGER.info("Published msg='{}' with msg-id={}", message, msgId);
     }
 
     /*
@@ -287,20 +292,19 @@ public class PulsarMessageProducer implements MessageProducer {
     public void send(Destination destination, Message message,
                      int deliveryMode, int priority, long timeToLive,
                      CompletionListener completionListener) throws JMSException {
-        String name = ((PulsarDestination) destination).getName();
-        //TODO need to map with pulsar producer
-        ProducerRecord<String, Message> data = new ProducerRecord<String, Message>(
-                name, message.getStringProperty("traceId"), message);
-        producer.send(data, new Callback() {
-            @Override
-            public void onCompletion(RecordMetadata rmd, Exception e) {
-                if (null == e) {
-                    completionListener.onCompletion(message);
-                } else {
-                    completionListener.onException(message, e);
-                }
-            }
-        });
+
+        if (completionListener == null) {
+            throw new IllegalArgumentException("CompletetionListener cannot be null");
+        }
+        //TODO need to map with pulsar producer send
+        // Send each message and log message content and ID when successfully received
+        MessageId msgId = null;
+        try {
+            msgId = producer.send(message);
+        } catch (PulsarClientException e) {
+            LOGGER.error(e.getMessage());
+        }
+        LOGGER.info("Published msg='{}' with msg-id={}", message, msgId);
     }
 
 }

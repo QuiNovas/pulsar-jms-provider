@@ -53,9 +53,9 @@ public class PulsarConnectionFactoryTest {
 	//@Ignore
 	@Test
 	public void testReceive() throws JMSException {
-		executeProducerTest();
+/*		executeProducerTest();
 		executeConsumerTest();
-		executeConsumerTest();
+		executeConsumerTest();*/
 	}
 
 	/**

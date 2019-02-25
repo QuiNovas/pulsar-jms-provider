@@ -5,6 +5,8 @@ import com.echostreams.pulsar.jms.PulsarMessageProducer;
 import com.echostreams.pulsar.jms.PulsarQueue;
 import com.echostreams.pulsar.jms.PulsarTopic;
 import com.echostreams.pulsar.jms.message.*;
+import com.echostreams.pulsar.jms.utils.PulsarJMSException;
+import org.apache.pulsar.client.api.PulsarClientException;
 
 import javax.jms.*;
 import java.io.Serializable;
@@ -179,7 +181,11 @@ public class PulsarSession implements Session {
     @Override
     public MessageProducer createProducer(Destination destination)
             throws JMSException {
-        producer = new PulsarMessageProducer(config, destination, connection);
+        try {
+            producer = new PulsarMessageProducer(config, destination, connection);
+        } catch (PulsarClientException e) {
+            throw new PulsarJMSException("PulsarClientException", e.getMessage());
+        }
         return producer;
     }
 

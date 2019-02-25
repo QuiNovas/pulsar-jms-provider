@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.echostreams</groupId>
-    <artifactId>pulsar-jms-provider-new</artifactId>
+    <artifactId>pulsar-jms-provider</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
