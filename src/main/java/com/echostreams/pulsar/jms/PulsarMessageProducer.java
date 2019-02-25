@@ -2,11 +2,13 @@ package com.echostreams.pulsar.jms;
 
 import com.echostreams.pulsar.jms.client.PulsarConnection;
 import com.echostreams.pulsar.jms.client.PulsarDestination;
-import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 import org.apache.pulsar.client.api.CompressionType;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.impl.ProducerBase;
+import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.impl.ProducerBuilderImpl;
+import org.apache.pulsar.client.impl.ProducerImpl;
+import org.apache.pulsar.client.impl.PulsarClientImpl;
 
 import javax.jms.*;
 import java.util.Properties;
@@ -29,23 +31,13 @@ public class PulsarMessageProducer implements MessageProducer {
      * @param destination
      * @param connection
      */
-    public PulsarMessageProducer(Properties config, Destination destination, PulsarConnection connection) {
+    public PulsarMessageProducer(Properties config, Destination destination, PulsarConnection connection) throws PulsarClientException {
         this.destination = destination;
         //this.producer = new KafkaProducer<String, Message>(config);
         //TODO need to map with pulsar producer
-        this.producer = new ProducerBase<Message>(config);
+        this.producer = new ProducerImpl<Message>(config);
 
-        // Configure producer specific settings
-        try {
-            org.apache.pulsar.client.api.Producer<byte[]> producer = connection.getClient().newProducer()
-                    // Set the topic
-                    .topic("Test-Topic")
-                            // Enable compression
-                    .compressionType(CompressionType.LZ4)
-                    .create();
-        } catch (PulsarClientException e) {
-            e.printStackTrace();
-        }
+        this.producer = new ProducerBuilderImpl((PulsarClientImpl) connection.getClient(), Schema.BYTES).create();
     }
 
     /*

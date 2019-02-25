@@ -8,7 +8,7 @@ import java.util.*;
 
 public class PulsarMessageConsumer implements MessageConsumer {
     private Consumer<Message> consumer;
-    private PulsarDestination destination;
+    private Destination destination;
     private MessageListener listener = new MessageListener() {
         @Override
         public void onMessage(Message message) {
@@ -24,7 +24,7 @@ public class PulsarMessageConsumer implements MessageConsumer {
     public PulsarMessageConsumer(Properties config, Destination destination) throws JMSException {
         //TODO need to map with pulsar consumer
         consumer = new KafkaConsumer<String, Message>(config);
-        this.destination = (PulsarDestination) destination;
+        this.destination = destination;
         consumer.subscribe(Arrays.asList(this.destination.getName()));
     }
 
