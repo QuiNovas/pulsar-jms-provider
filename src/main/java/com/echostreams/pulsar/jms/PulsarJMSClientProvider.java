@@ -1,12 +1,13 @@
 package com.echostreams.pulsar.jms;
 
+import com.echostreams.pulsar.jms.client.PulsarConnectionFactory;
 import com.echostreams.pulsar.jms.client.PulsarDestination;
 
 import javax.jms.*;
 
 public class PulsarJMSClientProvider {
 
-    private ConnectionFactory factory;
+    private ConnectionFactory factory = new PulsarConnectionFactory();
     private Connection con;
     private Session session;
     private Destination topic;
