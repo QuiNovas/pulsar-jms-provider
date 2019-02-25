@@ -13,11 +13,11 @@ import java.util.Enumeration;
  */
 public final class MessageUtils {
 
-    public static PulsarMessage transformMessage( Message sourceMsg ) throws JMSException {
+    public static PulsarMessage transformMessage(Message sourceMsg) throws JMSException {
         if (sourceMsg instanceof PulsarMessage) {
             return (PulsarMessage) sourceMsg;
 
-        }else{
+        } else {
             PulsarMessage pulsarMessage = null;
             if (sourceMsg instanceof TextMessage) {
                 TextMessage textMsg = (TextMessage) sourceMsg;

@@ -241,7 +241,7 @@ public class PulsarMessageProducer implements MessageProducer {
             }
             msgId = producer.send(message);
         } catch (PulsarClientException e) {
-            LOGGER.error("PulsarClientException during send : ",e);
+            LOGGER.error("PulsarClientException during send : ", e);
         }
         LOGGER.info("Published msg='{}' with msg-id={}", message, msgId);
     }

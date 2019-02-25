@@ -70,7 +70,7 @@ public class PulsarConnectionFactory implements ConnectionFactory {
         PulsarClient client = null;
         try {
             client = PulsarClient.builder()
-                    .serviceUrl("http://localhost:8080")
+                    .serviceUrl("pulsar://localhost:6650")
                     .build();
         } catch (PulsarClientException e) {
             //LOGGER.error("Could not create the connection :", e);
