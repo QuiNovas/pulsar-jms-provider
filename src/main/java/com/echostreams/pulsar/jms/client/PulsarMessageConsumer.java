@@ -4,12 +4,15 @@ import com.echostreams.pulsar.jms.message.PulsarMessage;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.impl.ConsumerBuilderImpl;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -35,6 +38,7 @@ public class PulsarMessageConsumer implements MessageConsumer {
             this.destination = destination;
             this.consumer = new ConsumerBuilderImpl((PulsarClientImpl) connection.getClient(), Schema.STRING)
                     .topic(((PulsarDestination) destination).getName())
+                    .subscriptionType(SubscriptionType.Shared)
                     .subscriptionName("test-subcription")
                     .subscribe();
         } catch (PulsarClientException e) {
@@ -108,13 +112,22 @@ public class PulsarMessageConsumer implements MessageConsumer {
         }
     }
 
-    private PulsarMessage readMessages(int i, TimeUnit milliseconds) {
-        org.apache.pulsar.client.api.Message msg = null;
+    private PulsarMessage readMessages(int timeout, TimeUnit milliseconds) {
+        org.apache.pulsar.client.api.Message<byte[]> msg = null;
         try {
-            msg = consumer.receive(1000, TimeUnit.MILLISECONDS);
+//            do {
+                // Wait until a message is available
+                msg = consumer.receive(timeout, milliseconds);
 
-            // Acknowledge processing of the message so that it can be deleted
-            consumer.acknowledge(msg);
+                // Extract the message as a printable string and then log
+                String content = new String(msg.getData());
+                LOGGER.info("Received message='{}' with msg-id={}", content, msg.getMessageId());
+
+                // Acknowledge processing of the message so that it can be deleted
+
+                consumer.acknowledge(msg);
+
+//            } while (true);
         } catch (PulsarClientException e) {
             LOGGER.error("Exception during receiving message", e);
         }

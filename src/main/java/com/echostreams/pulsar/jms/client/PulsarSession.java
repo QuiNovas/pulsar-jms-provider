@@ -3,6 +3,8 @@ package com.echostreams.pulsar.jms.client;
 import com.echostreams.pulsar.jms.message.*;
 import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 import java.io.Serializable;
@@ -12,7 +14,7 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
     private Properties config;
     private PulsarMessageProducer producer;
     private PulsarMessageConsumer consumer;
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(PulsarSession.class);
     private MessageListener listener;
 
     PulsarConnection connection;
@@ -180,7 +182,8 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
         try {
             producer = new PulsarMessageProducer(config, destination, connection);
         } catch (PulsarClientException e) {
-            throw new PulsarJMSException("PulsarClientException", e.getMessage());
+            LOGGER.error("Pulsar Session exception", e);
+//            throw new PulsarJMSException("PulsarClientException", e.getMessage());
         }
         return producer;
     }

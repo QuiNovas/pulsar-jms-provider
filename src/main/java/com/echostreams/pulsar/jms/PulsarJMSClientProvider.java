@@ -18,7 +18,7 @@ public class PulsarJMSClientProvider {
     public static void main(String[] args) throws JMSException {
         PulsarJMSClientProvider pulsarJMSClientProvider = new PulsarJMSClientProvider();
         pulsarJMSClientProvider.executeProducerTest();
-        //pulsarJMSClientProvider.executeConsumerTest();
+        pulsarJMSClientProvider.executeConsumerTest();
     }
 
     private void executeProducerTest() throws JMSException {

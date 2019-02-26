@@ -68,7 +68,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         PulsarClient client = null;
         try {
             client = PulsarClient.builder()
-                    .serviceUrl("pulsar://localhost:6650")
+                    .serviceUrl("pulsar://172.16.30.99:6650")
                     .build();
         } catch (PulsarClientException e) {
             //LOGGER.error("Could not create the connection :", e);

@@ -18,7 +18,7 @@ public class PulsarMessageProducer implements MessageProducer {
     private static final int DEFAULT_PRIORITY = 4;
     private static final int DEFAULT_DELIERY_MODE = DeliveryMode.PERSISTENT;
     private static final int DEFAULT_TTL = 60000;
-    private Producer producer;
+    private Producer<byte[]> producer;
     private PulsarDestination destination;
     private boolean disbledMessageId;
     private boolean disableMessageTimestamp;
@@ -38,7 +38,7 @@ public class PulsarMessageProducer implements MessageProducer {
         //TODO need to map with pulsar producer
 
 
-        this.producer = new ProducerBuilderImpl((PulsarClientImpl) connection.getClient(), Schema.STRING).topic(((PulsarDestination) destination).getName()).create();
+        this.producer = new ProducerBuilderImpl((PulsarClientImpl) connection.getClient(), Schema.BYTES).topic(((PulsarDestination) destination).getName()).create();
     }
 
     /*
@@ -237,7 +237,7 @@ public class PulsarMessageProducer implements MessageProducer {
             if (transformedMessage != null) {
                 message = transformedMessage;
             }
-            msgId = producer.send(message);
+            msgId = producer.send("Tis is test".getBytes());
         } catch (PulsarClientException e) {
             LOGGER.error("PulsarClientException during send : ", e);
         }
@@ -303,7 +303,7 @@ public class PulsarMessageProducer implements MessageProducer {
         // Send each message and log message content and ID when successfully received
         MessageId msgId = null;
         try {
-            msgId = producer.send(message);
+            msgId = producer.send("Tis is test".getBytes());
         } catch (PulsarClientException e) {
             LOGGER.error(e.getMessage());
         }

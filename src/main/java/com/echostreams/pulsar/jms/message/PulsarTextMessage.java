@@ -45,4 +45,11 @@ public class PulsarTextMessage extends PulsarMessage implements TextMessage {
         return payload;
     }
 
+    @Override
+    public String toString() {
+        return "PulsarTextMessage{" +
+                "payload='" + payload + '\'' +
+                '}';
+    }
+
 }
