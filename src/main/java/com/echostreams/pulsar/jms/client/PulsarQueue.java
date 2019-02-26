@@ -1,6 +1,4 @@
-package com.echostreams.pulsar.jms;
-
-import com.echostreams.pulsar.jms.client.PulsarDestination;
+package com.echostreams.pulsar.jms.client;
 
 import javax.jms.JMSException;
 import javax.jms.Queue;

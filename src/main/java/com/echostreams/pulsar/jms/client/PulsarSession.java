@@ -1,9 +1,5 @@
 package com.echostreams.pulsar.jms.client;
 
-import com.echostreams.pulsar.jms.PulsarMessageConsumer;
-import com.echostreams.pulsar.jms.PulsarMessageProducer;
-import com.echostreams.pulsar.jms.PulsarQueue;
-import com.echostreams.pulsar.jms.PulsarTopic;
 import com.echostreams.pulsar.jms.message.*;
 import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -12,7 +8,7 @@ import javax.jms.*;
 import java.io.Serializable;
 import java.util.Properties;
 
-public class PulsarSession implements Session {
+public class PulsarSession implements Session, QueueSession, TopicSession {
     private Properties config;
     private PulsarMessageProducer producer;
     private PulsarMessageConsumer consumer;
@@ -195,7 +191,7 @@ public class PulsarSession implements Session {
     @Override
     public MessageConsumer createConsumer(Destination destination)
             throws JMSException {
-        consumer = new PulsarMessageConsumer(config, destination);
+        consumer = new PulsarMessageConsumer(config, destination, connection);
         return consumer;
     }
 
@@ -246,12 +242,37 @@ public class PulsarSession implements Session {
         return new PulsarQueue(queueName);
     }
 
+    @Override
+    public QueueReceiver createReceiver(Queue queue) throws JMSException {
+        return null;
+    }
+
+    @Override
+    public QueueReceiver createReceiver(Queue queue, String s) throws JMSException {
+        return null;
+    }
+
+    @Override
+    public QueueSender createSender(Queue queue) throws JMSException {
+        return null;
+    }
+
     /* (non-Javadoc)
      * @see javax.jms.Session#createTopic(java.lang.String)
      */
     @Override
     public Topic createTopic(String topicName) throws JMSException {
         return new PulsarTopic(topicName);
+    }
+
+    @Override
+    public TopicSubscriber createSubscriber(Topic topic) throws JMSException {
+        return null;
+    }
+
+    @Override
+    public TopicSubscriber createSubscriber(Topic topic, String s, boolean b) throws JMSException {
+        return null;
     }
 
     /* (non-Javadoc)
@@ -271,6 +292,11 @@ public class PulsarSession implements Session {
     public TopicSubscriber createDurableSubscriber(Topic topic, String name,
                                                    String messageSelector, boolean noLocal) throws JMSException {
         // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public TopicPublisher createPublisher(Topic topic) throws JMSException {
         return null;
     }
 

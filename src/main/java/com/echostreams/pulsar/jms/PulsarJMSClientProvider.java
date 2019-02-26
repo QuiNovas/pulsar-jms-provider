@@ -2,10 +2,13 @@ package com.echostreams.pulsar.jms;
 
 import com.echostreams.pulsar.jms.client.PulsarConnectionFactory;
 import com.echostreams.pulsar.jms.client.PulsarDestination;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 
 public class PulsarJMSClientProvider {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PulsarJMSClientProvider.class);
 
     private ConnectionFactory factory = new PulsarConnectionFactory();
     private Connection con;
@@ -40,7 +43,7 @@ public class PulsarJMSClientProvider {
 
         MessageConsumer consumer = session.createConsumer(topic);
         Message msg = consumer.receive(5000);
-
+        LOGGER.info("Received message='{}' with msg-id={}", msg.getBody(String.class), msg.getJMSMessageID());
         session.unsubscribe(((PulsarDestination) topic).getName());
         consumer.close();
     }

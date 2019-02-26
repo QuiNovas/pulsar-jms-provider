@@ -15,15 +15,13 @@ import org.apache.pulsar.client.impl.auth.AuthenticationAthenz;
 import org.apache.pulsar.client.impl.auth.AuthenticationTls;
 
 import javax.annotation.PostConstruct;
-import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
-import javax.jms.JMSContext;
-import javax.jms.JMSException;
+import javax.jms.*;
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-public class PulsarConnectionFactory implements ConnectionFactory {
+public class PulsarConnectionFactory implements ConnectionFactory, QueueConnectionFactory, TopicConnectionFactory, Serializable {
     private static final String DEFAULT_AUTO_COMMIT_INTERVAL = "10000";
     private static final String DEFAULT_ASSIGNMENT_STRATEGY = "range";
     private static final String DEFAULT_AUTO_COMMIT = "false";
@@ -190,4 +188,23 @@ public class PulsarConnectionFactory implements ConnectionFactory {
         return client;
     }
 
+    @Override
+    public QueueConnection createQueueConnection() throws JMSException {
+        return (QueueConnection) createConnection();
+    }
+
+    @Override
+    public QueueConnection createQueueConnection(String s, String s1) throws JMSException {
+        return null;
+    }
+
+    @Override
+    public TopicConnection createTopicConnection() throws JMSException {
+        return (TopicConnection) createConnection();
+    }
+
+    @Override
+    public TopicConnection createTopicConnection(String s, String s1) throws JMSException {
+        return null;
+    }
 }

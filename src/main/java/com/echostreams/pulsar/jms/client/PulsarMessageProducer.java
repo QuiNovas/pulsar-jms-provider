@@ -1,7 +1,5 @@
-package com.echostreams.pulsar.jms;
+package com.echostreams.pulsar.jms.client;
 
-import com.echostreams.pulsar.jms.client.PulsarConnection;
-import com.echostreams.pulsar.jms.client.PulsarDestination;
 import com.echostreams.pulsar.jms.utils.MessageUtils;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
