@@ -19,7 +19,7 @@ public class PulsarConnectionFactoryTest {
      */
     @Before
     public void setUp() throws Exception {
-        factory = new PulsarConnectionFactory();
+        factory = new PulsarConnectionFactory("pulsar://192.168.43.88:6650");
         //((PulsarConnectionFactory)factory).initializeConfig();
         //((PulsarConnectionFactory)factory).getBuilder().groupId("PulsarConnectionFactoryTest")
         //.enableAuutoCommit("true").autoCommitInterval("1000");
@@ -55,9 +55,9 @@ public class PulsarConnectionFactoryTest {
     //@Ignore
     @Test
     public void testReceive() throws JMSException {
-/*		executeProducerTest();
+		executeProducerTest();
         executeConsumerTest();
-		executeConsumerTest();*/
+		executeConsumerTest();
     }
 
     /**

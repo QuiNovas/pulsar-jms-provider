@@ -22,6 +22,11 @@ public class StringSerializer implements Serializer<String> {
 
     }
 
+    @Override
+    public byte[] serialize(String var2) {
+        return new byte[0];
+    }
+
     public byte[] serialize(String topic, String data) {
         try {
             return data == null ? null : data.getBytes(this.encoding);

@@ -14,10 +14,9 @@ import java.util.Enumeration;
 public final class MessageUtils {
 
     public static PulsarMessage transformMessage(Message sourceMsg) throws JMSException {
-        if (sourceMsg instanceof PulsarMessage) {
+      /*  if (sourceMsg instanceof PulsarMessage) {
             return (PulsarMessage) sourceMsg;
-
-        } else {
+        } else {*/
             PulsarMessage pulsarMessage = null;
             if (sourceMsg instanceof TextMessage) {
                 TextMessage textMsg = (TextMessage) sourceMsg;
@@ -27,7 +26,7 @@ public final class MessageUtils {
             }
             copyProperties(sourceMsg, pulsarMessage);
             return pulsarMessage;
-        }
+        //}
     }
 
     public static void copyProperties(Message fromMessage, Message toMessage) throws JMSException {
@@ -36,8 +35,8 @@ public final class MessageUtils {
         //TODO nee to check dest type of queue/topic/tempqueue/temptopic
         /*toMessage.setJMSReplyTo(transformDestination(fromMessage.getJMSReplyTo()));
         toMessage.setJMSDestination(transformDestination(fromMessage.getJMSDestination()));*/
-        toMessage.setJMSDeliveryMode(fromMessage.getJMSDeliveryMode());
-        toMessage.setJMSRedelivered(fromMessage.getJMSRedelivered());
+        //toMessage.setJMSDeliveryMode(fromMessage.getJMSDeliveryMode());
+        //toMessage.setJMSRedelivered(fromMessage.getJMSRedelivered());
         toMessage.setJMSType(fromMessage.getJMSType());
         toMessage.setJMSExpiration(fromMessage.getJMSExpiration());
         toMessage.setJMSPriority(fromMessage.getJMSPriority());
@@ -51,4 +50,6 @@ public final class MessageUtils {
             toMessage.setObjectProperty(name, obj);
         }
     }
+
+
 }

@@ -41,4 +41,13 @@ public interface PulsarConfig {
     public static final String QUEUE_PREFIX = "queue/";
     public static final String TOPIC_PREFIX = "topic/";
     public static final String SERVER = "server";
+
+    // Message Type
+    public static final String TEXT_MESSAGE = "TextMessage";
+    public static final String BYTES_MESSAGE = "BytesMessage";
+    public static final String MAP_MESSAGE = "MapMessage";
+    public static final String OBJECT_MESSAGE = "ObjectMessage";
+    public static final String STREAM_MESSAGE = "StreamMessage";
+    public static final String BLOB_MESSAGE = "BlobMessage";
+
 }

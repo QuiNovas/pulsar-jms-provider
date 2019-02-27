@@ -1,5 +1,7 @@
 package com.echostreams.pulsar.jms.message;
 
+import com.echostreams.pulsar.jms.config.PulsarConfig;
+
 import javax.jms.BytesMessage;
 import javax.jms.JMSException;
 import java.io.Serializable;
@@ -8,7 +10,8 @@ import java.util.HashMap;
 public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
     private byte[] payload;
 
-    public PulsarBytesMessage() {
+    public PulsarBytesMessage() throws JMSException {
+        setJMSType(PulsarConfig.BYTES_MESSAGE);
         headers = new HashMap<>();
         headers.put(PROPERTIES, new HashMap<String, Serializable>());
     }

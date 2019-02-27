@@ -10,7 +10,7 @@ import javax.jms.*;
 public class PulsarJMSClientProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarJMSClientProvider.class);
 
-    private ConnectionFactory factory = new PulsarConnectionFactory();
+    private ConnectionFactory factory = new PulsarConnectionFactory("pulsar://192.168.43.88:6650");
     private Connection con;
     private Session session;
     private Destination topic;
@@ -43,7 +43,7 @@ public class PulsarJMSClientProvider {
 
         MessageConsumer consumer = session.createConsumer(topic);
         Message msg = consumer.receive(5000);
-        LOGGER.info("Received message='{}' with msg-id={}", msg.getBody(String.class), msg.getJMSMessageID());
+        //LOGGER.info("Received message='{}' with msg-id={}", msg.getBody(String.class), msg.getJMSMessageID());
         session.unsubscribe(((PulsarDestination) topic).getName());
         consumer.close();
     }

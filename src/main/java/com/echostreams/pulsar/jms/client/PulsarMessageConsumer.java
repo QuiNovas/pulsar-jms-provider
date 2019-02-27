@@ -1,6 +1,7 @@
 package com.echostreams.pulsar.jms.client;
 
 import com.echostreams.pulsar.jms.message.PulsarMessage;
+import com.echostreams.pulsar.jms.utils.ObjectSerializer;
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
@@ -11,8 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
@@ -114,24 +113,24 @@ public class PulsarMessageConsumer implements MessageConsumer {
 
     private PulsarMessage readMessages(int timeout, TimeUnit milliseconds) {
         org.apache.pulsar.client.api.Message<byte[]> msg = null;
+        PulsarMessage pulsarMessage = null;
         try {
-//            do {
-                // Wait until a message is available
-                msg = consumer.receive(timeout, milliseconds);
+            // Wait until a message is available
+            msg = consumer.receive(timeout, milliseconds);
+            pulsarMessage = (PulsarMessage) new ObjectSerializer().byteArrayToObject(msg);
 
-                // Extract the message as a printable string and then log
-                String content = new String(msg.getData());
-                LOGGER.info("Received message='{}' with msg-id={}", content, msg.getMessageId());
+            // Extract the message as a printable string and then log
+            LOGGER.info("Received message='{}' with msg-id={}", pulsarMessage.getBody(pulsarMessage.getJMSType().getClass()), msg.getMessageId());
 
-                // Acknowledge processing of the message so that it can be deleted
+            // Acknowledge processing of the message so that it can be deleted
 
-                consumer.acknowledge(msg);
-
-//            } while (true);
+            consumer.acknowledge(msg);
         } catch (PulsarClientException e) {
             LOGGER.error("Exception during receiving message", e);
+        } catch (JMSException e) {
+            LOGGER.error("Exception during receiving message", e);
         }
-        return (PulsarMessage) msg;
+        return pulsarMessage;
     }
 
     void unsubscribe() throws JMSException {

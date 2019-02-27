@@ -1,5 +1,7 @@
 package com.echostreams.pulsar.jms.message;
 
+import com.echostreams.pulsar.jms.config.PulsarConfig;
+
 import javax.jms.JMSException;
 import javax.jms.ObjectMessage;
 import java.io.Serializable;
@@ -11,7 +13,8 @@ public class PulsarObjectMessage extends PulsarMessage implements ObjectMessage 
     /**
      *
      */
-    public PulsarObjectMessage() {
+    public PulsarObjectMessage() throws JMSException {
+        setJMSType(PulsarConfig.OBJECT_MESSAGE);
         headers = new HashMap<>();
         headers.put(PROPERTIES, new HashMap<String, Serializable>());
     }

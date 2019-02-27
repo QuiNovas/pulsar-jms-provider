@@ -1,6 +1,7 @@
 package com.echostreams.pulsar.jms.client;
 
 import com.echostreams.pulsar.jms.utils.MessageUtils;
+import com.echostreams.pulsar.jms.utils.ObjectSerializer;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -11,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
+import java.util.Date;
 import java.util.Properties;
 
 public class PulsarMessageProducer implements MessageProducer {
@@ -34,10 +36,7 @@ public class PulsarMessageProducer implements MessageProducer {
      */
     public PulsarMessageProducer(Properties config, Destination destination, PulsarConnection connection) throws PulsarClientException, JMSException {
         this.destination = (PulsarDestination) destination;
-        //this.producer = new KafkaProducer<String, Message>(config);
-        //TODO need to map with pulsar producer
-
-
+        //TODO need to map with pulsar producer config
         this.producer = new ProducerBuilderImpl((PulsarClientImpl) connection.getClient(), Schema.BYTES).topic(((PulsarDestination) destination).getName()).create();
     }
 
@@ -233,11 +232,31 @@ public class PulsarMessageProducer implements MessageProducer {
         // Send each message and log message content and ID when successfully received
         MessageId msgId = null;
         try {
+            if (!(destination instanceof PulsarDestination)) {
+                // don't support non-OpenJMS or null destinations
+                throw new InvalidDestinationException(
+                        "Invalid destination: " + destination);
+            }
+            if (message == null) {
+                throw new MessageFormatException("Null message");
+            }
+
+            // message.setJMSDestination(destination);
+            message.setJMSTimestamp((new Date()).getTime());
+            message.setJMSPriority(priority);
+
+            if (timeToLive > 0) {
+                message.setJMSExpiration(System.currentTimeMillis() + timeToLive);
+            } else {
+                message.setJMSExpiration(0);
+            }
+
             Message transformedMessage = MessageUtils.transformMessage(message);
             if (transformedMessage != null) {
                 message = transformedMessage;
             }
-            msgId = producer.send("Tis is test".getBytes());
+            msgId = producer.send(new ObjectSerializer().objectToByteArray(message));
+            message.setJMSMessageID(msgId.toString());
         } catch (PulsarClientException e) {
             LOGGER.error("PulsarClientException during send : ", e);
         }

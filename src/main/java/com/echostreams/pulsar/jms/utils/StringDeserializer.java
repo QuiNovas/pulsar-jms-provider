@@ -22,6 +22,11 @@ public class StringDeserializer implements Deserializer<String> {
 
     }
 
+    @Override
+    public String deserialize(byte[] var2) {
+        return null;
+    }
+
     public String deserialize(String topic, byte[] data) {
         try {
             return data == null ? null : new String(data, this.encoding);

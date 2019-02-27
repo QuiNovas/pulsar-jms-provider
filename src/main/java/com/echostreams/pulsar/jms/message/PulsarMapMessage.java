@@ -1,5 +1,7 @@
 package com.echostreams.pulsar.jms.message;
 
+import com.echostreams.pulsar.jms.config.PulsarConfig;
+
 import javax.jms.JMSException;
 import javax.jms.MapMessage;
 import java.io.Serializable;
@@ -10,7 +12,8 @@ import java.util.Map;
 public class PulsarMapMessage extends PulsarMessage implements MapMessage {
     private Map payload;
 
-    public PulsarMapMessage() {
+    public PulsarMapMessage() throws JMSException {
+        setJMSType(PulsarConfig.MAP_MESSAGE);
         headers = new HashMap<>();
         headers.put(PROPERTIES, new HashMap<String, Serializable>());
     }

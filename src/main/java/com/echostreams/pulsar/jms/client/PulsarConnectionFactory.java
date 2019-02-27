@@ -1,6 +1,6 @@
 package com.echostreams.pulsar.jms.client;
 
-import com.echostreams.pulsar.jms.ObjectSerializer;
+import com.echostreams.pulsar.jms.utils.ObjectSerializer;
 import com.echostreams.pulsar.jms.PulsarConfigBuilder;
 import com.echostreams.pulsar.jms.auth.AthenzAuthParams;
 import com.echostreams.pulsar.jms.auth.TLSAuthParams;
@@ -13,6 +13,8 @@ import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.auth.AuthenticationAthenz;
 import org.apache.pulsar.client.impl.auth.AuthenticationTls;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.jms.*;
@@ -22,15 +24,24 @@ import java.util.Map;
 import java.util.Properties;
 
 public class PulsarConnectionFactory implements ConnectionFactory, QueueConnectionFactory, TopicConnectionFactory, Serializable {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PulsarConnectionFactory.class);
+
     private static final String DEFAULT_AUTO_COMMIT_INTERVAL = "10000";
     private static final String DEFAULT_ASSIGNMENT_STRATEGY = "range";
     private static final String DEFAULT_AUTO_COMMIT = "false";
     private static final String DEFAULT_TIMOUT = "1000";
-    private static String DEFAULT_BROKER = "localhost:9092";
+    private static String DEFAULT_BROKER = "pulsar://192.168.43.88:6650";
     private static String DEFAULT_VALUE_SERIALIZER = ObjectSerializer.class.getName();
     private static String DEFAULT_KEY_SERIALIZER = StringSerializer.class.getName();
     private static String DEFAULT_KEY_DESERIALIZER = StringDeserializer.class.getName();
     private PulsarConfigBuilder builder = new PulsarConfigBuilder();
+
+    public PulsarConnectionFactory() {
+    }
+
+    public PulsarConnectionFactory(String brokerUrl) {
+        this.DEFAULT_BROKER = brokerUrl;
+    }
 
     /**
      * @return the builder
@@ -67,11 +78,9 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
     public Connection createConnection() throws JMSException {
         PulsarClient client = null;
         try {
-            client = PulsarClient.builder()
-                    .serviceUrl("pulsar://172.16.30.99:6650")
-                    .build();
+            client = PulsarClient.builder().serviceUrl(DEFAULT_BROKER).build();
         } catch (PulsarClientException e) {
-            //LOGGER.error("Could not create the connection :", e);
+            LOGGER.error("Could not create the connection :", e);
         }
         return new PulsarConnection(client);
     }
