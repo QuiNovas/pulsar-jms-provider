@@ -1,5 +1,6 @@
 package com.echostreams.pulsar.jms.client;
 
+import com.echostreams.pulsar.jms.utils.DestinationUtils;
 import com.echostreams.pulsar.jms.utils.MessageUtils;
 import com.echostreams.pulsar.jms.utils.ObjectSerializer;
 import org.apache.pulsar.client.api.MessageId;
@@ -232,16 +233,12 @@ public class PulsarMessageProducer implements MessageProducer {
         // Send each message and log message content and ID when successfully received
         MessageId msgId = null;
         try {
-            if (!(destination instanceof PulsarDestination)) {
-                // don't support non-OpenJMS or null destinations
-                throw new InvalidDestinationException(
-                        "Invalid destination: " + destination);
-            }
             if (message == null) {
                 throw new MessageFormatException("Null message");
             }
 
-            // message.setJMSDestination(destination);
+            message.setJMSReplyTo(DestinationUtils.transformDestination(destination));
+            message.setJMSDestination(DestinationUtils.transformDestination(destination));
             message.setJMSTimestamp((new Date()).getTime());
             message.setJMSPriority(priority);
 
@@ -260,7 +257,7 @@ public class PulsarMessageProducer implements MessageProducer {
         } catch (PulsarClientException e) {
             LOGGER.error("PulsarClientException during send : ", e);
         }
-        LOGGER.info("Published msg='{}' with msg-id={}", message, msgId);
+        LOGGER.info("Published msg='{}' with msg-id={}", message.getBody(message.getJMSType().getClass()), msgId);
     }
 
     /*
@@ -318,15 +315,33 @@ public class PulsarMessageProducer implements MessageProducer {
         if (completionListener == null) {
             throw new IllegalArgumentException("CompletetionListener cannot be null");
         }
-        //TODO need to map with pulsar producer send
         // Send each message and log message content and ID when successfully received
         MessageId msgId = null;
         try {
-            msgId = producer.send("Tis is test".getBytes());
-        } catch (PulsarClientException e) {
-            LOGGER.error(e.getMessage());
-        }
-        LOGGER.info("Published msg='{}' with msg-id={}", message, msgId);
-    }
+            if (message == null) {
+                throw new MessageFormatException("Null message");
+            }
 
+            message.setJMSReplyTo(DestinationUtils.transformDestination(destination));
+            message.setJMSDestination(DestinationUtils.transformDestination(destination));
+            message.setJMSTimestamp((new Date()).getTime());
+            message.setJMSPriority(priority);
+
+            if (timeToLive > 0) {
+                message.setJMSExpiration(System.currentTimeMillis() + timeToLive);
+            } else {
+                message.setJMSExpiration(0);
+            }
+
+            Message transformedMessage = MessageUtils.transformMessage(message);
+            if (transformedMessage != null) {
+                message = transformedMessage;
+            }
+            msgId = producer.send(new ObjectSerializer().objectToByteArray(message));
+            message.setJMSMessageID(msgId.toString());
+        } catch (PulsarClientException e) {
+            LOGGER.error("PulsarClientException during send : ", e);
+        }
+        LOGGER.info("Published msg='{}' with msg-id={}", message.getBody(message.getJMSType().getClass()), msgId);
+    }
 }

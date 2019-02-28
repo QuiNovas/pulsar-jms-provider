@@ -1,7 +1,7 @@
 package com.echostreams.pulsar.jms.client;
 
 import com.echostreams.pulsar.jms.utils.ObjectSerializer;
-import com.echostreams.pulsar.jms.PulsarConfigBuilder;
+import com.echostreams.pulsar.jms.config.PulsarConfigBuilder;
 import com.echostreams.pulsar.jms.auth.AthenzAuthParams;
 import com.echostreams.pulsar.jms.auth.TLSAuthParams;
 import com.echostreams.pulsar.jms.utils.PulsarJMSException;

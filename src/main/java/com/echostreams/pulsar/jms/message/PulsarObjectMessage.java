@@ -8,15 +8,12 @@ import java.io.Serializable;
 import java.util.HashMap;
 
 public class PulsarObjectMessage extends PulsarMessage implements ObjectMessage {
-    private Object payload;
+    private Serializable payload;
 
-    /**
-     *
-     */
     public PulsarObjectMessage() throws JMSException {
-        setJMSType(PulsarConfig.OBJECT_MESSAGE);
         headers = new HashMap<>();
         headers.put(PROPERTIES, new HashMap<String, Serializable>());
+        setJMSType(PulsarConfig.OBJECT_MESSAGE);
     }
 
     /* (non-Javadoc)
@@ -24,8 +21,7 @@ public class PulsarObjectMessage extends PulsarMessage implements ObjectMessage 
      */
     @Override
     public void clearBody() throws JMSException {
-        // TODO Auto-generated method stub
-
+        payload = null;
     }
 
     /* (non-Javadoc)
@@ -33,8 +29,7 @@ public class PulsarObjectMessage extends PulsarMessage implements ObjectMessage 
      */
     @Override
     public <T> T getBody(Class<T> c) throws JMSException {
-        // TODO Auto-generated method stub
-        return null;
+        return (T) payload;
     }
 
     /* (non-Javadoc)
@@ -42,8 +37,11 @@ public class PulsarObjectMessage extends PulsarMessage implements ObjectMessage 
      */
     @Override
     public void setObject(Serializable object) throws JMSException {
-        // TODO Auto-generated method stub
+        checkWriteMode();
+        if (object == null)
+            throw new IllegalArgumentException("Serializable object is null!");
 
+        this.payload = object;
     }
 
     /* (non-Javadoc)
@@ -51,8 +49,7 @@ public class PulsarObjectMessage extends PulsarMessage implements ObjectMessage 
      */
     @Override
     public Serializable getObject() throws JMSException {
-        // TODO Auto-generated method stub
-        return null;
+        return this.payload;
     }
 
 }

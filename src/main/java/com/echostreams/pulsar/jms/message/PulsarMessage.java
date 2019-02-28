@@ -4,9 +4,7 @@ import com.echostreams.pulsar.jms.config.JmsHeaderKeys;
 import com.echostreams.pulsar.jms.client.PulsarDestination;
 
 import javax.annotation.PostConstruct;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.Message;
+import javax.jms.*;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -14,8 +12,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public abstract class PulsarMessage implements Message, Serializable {
+
     public static final String PROPERTIES = "properties";
     protected Map<String, Serializable> headers;
+    /* read only flag for the message body */
+    protected boolean readOnlyBody;
 
     @PostConstruct
     protected void verify() {
@@ -108,10 +109,7 @@ public abstract class PulsarMessage implements Message, Serializable {
      */
     @Override
     public void setJMSReplyTo(Destination replyTo) throws JMSException {
-        if (replyTo instanceof PulsarDestination) {
-            headers.put(JmsHeaderKeys.JMSReplyTo, (PulsarDestination) replyTo);
-        }
-        throw new JMSException("Unsuported Destination type.");
+        headers.put(JmsHeaderKeys.JMSReplyTo, (PulsarDestination) replyTo);
     }
 
     /* (non-Javadoc)
@@ -127,10 +125,7 @@ public abstract class PulsarMessage implements Message, Serializable {
      */
     @Override
     public void setJMSDestination(Destination destination) throws JMSException {
-        if (destination instanceof PulsarDestination) {
-            headers.put(JmsHeaderKeys.JMSDestination, (PulsarDestination) destination);
-        }
-        throw new JMSException("Unsuported Destination type.");
+        headers.put(JmsHeaderKeys.JMSDestination, (PulsarDestination) destination);
     }
 
     /* (non-Javadoc)
@@ -418,5 +413,16 @@ public abstract class PulsarMessage implements Message, Serializable {
         return c.getName().equals(String.class.getName());
     }
 
+    public final void checkWriteMode() throws MessageNotWriteableException {
+        if (this.readOnlyBody) {
+            throw new MessageNotWriteableException("Message in read-only mode");
+        }
+    }
+
+    public final void checkReadMode() throws MessageNotReadableException {
+        if (!this.readOnlyBody) {
+            throw new MessageNotReadableException("Message in write-only mode");
+        }
+    }
 
 }

@@ -84,7 +84,7 @@ public class PulsarMessageConsumer implements MessageConsumer {
      */
     @Override
     public Message receive(long timeout) throws JMSException {
-        return readMessages(1000, TimeUnit.MILLISECONDS);
+        return readMessages(5000, TimeUnit.MILLISECONDS);
     }
 
     /* (non-Javadoc)
@@ -111,20 +111,24 @@ public class PulsarMessageConsumer implements MessageConsumer {
         }
     }
 
-    private PulsarMessage readMessages(int timeout, TimeUnit milliseconds) {
+    private PulsarMessage readMessages(int timeout, TimeUnit timeUnit) {
         org.apache.pulsar.client.api.Message<byte[]> msg = null;
         PulsarMessage pulsarMessage = null;
         try {
             // Wait until a message is available
-            msg = consumer.receive(timeout, milliseconds);
-            pulsarMessage = (PulsarMessage) new ObjectSerializer().byteArrayToObject(msg);
+            do {
+                msg = consumer.receive();
+                if (msg != null) {
+                    pulsarMessage = (PulsarMessage) new ObjectSerializer().byteArrayToObject(msg);
 
-            // Extract the message as a printable string and then log
-            LOGGER.info("Received message='{}' with msg-id={}", pulsarMessage.getBody(pulsarMessage.getJMSType().getClass()), msg.getMessageId());
+                    // Extract the message as a printable string and then log
+                    LOGGER.info("Received message='{}' with msg-id={}", pulsarMessage.getBody(pulsarMessage.getJMSType().getClass()), msg.getMessageId());
 
-            // Acknowledge processing of the message so that it can be deleted
+                    // Acknowledge processing of the message so that it can be deleted
 
-            consumer.acknowledge(msg);
+                    consumer.acknowledge(msg);
+                }
+            } while (true);
         } catch (PulsarClientException e) {
             LOGGER.error("Exception during receiving message", e);
         } catch (JMSException e) {

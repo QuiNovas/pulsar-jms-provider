@@ -18,6 +18,7 @@ public class PulsarJMSClientProvider {
     public static void main(String[] args) throws JMSException {
         PulsarJMSClientProvider pulsarJMSClientProvider = new PulsarJMSClientProvider();
         pulsarJMSClientProvider.executeProducerTest();
+        pulsarJMSClientProvider.executeProducerByteTest();
         pulsarJMSClientProvider.executeConsumerTest();
     }
 
@@ -35,6 +36,20 @@ public class PulsarJMSClientProvider {
         producer.close();
     }
 
+    private void executeProducerByteTest() throws JMSException {
+        con = factory.createConnection();
+        session = con.createSession();
+        topic = session.createTopic("testByte");
+
+        MessageProducer producer = session.createProducer(topic);
+
+        BytesMessage text = session.createBytesMessage();
+        text.writeBytes("this is a Byte test.".getBytes());
+
+        producer.send(text);
+        producer.close();
+    }
+
     private void executeConsumerTest() throws JMSException {
         con = factory.createConnection();
         session = con.createSession();
@@ -42,8 +57,7 @@ public class PulsarJMSClientProvider {
 
 
         MessageConsumer consumer = session.createConsumer(topic);
-        Message msg = consumer.receive(5000);
-        //LOGGER.info("Received message='{}' with msg-id={}", msg.getBody(String.class), msg.getJMSMessageID());
+        consumer.receive(5000);
         session.unsubscribe(((PulsarDestination) topic).getName());
         consumer.close();
     }

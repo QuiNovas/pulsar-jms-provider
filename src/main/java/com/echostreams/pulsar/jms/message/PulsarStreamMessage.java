@@ -1,23 +1,45 @@
 package com.echostreams.pulsar.jms.message;
 
 import com.echostreams.pulsar.jms.config.PulsarConfig;
+import com.echostreams.pulsar.jms.utils.CommonUtils;
+import com.echostreams.pulsar.jms.utils.MessageConverterUtils;
+import com.echostreams.pulsar.jms.utils.MessageUtils;
 
-import javax.jms.JMSException;
-import javax.jms.StreamMessage;
+import javax.jms.*;
+import java.io.ByteArrayInputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.stream.Stream;
 
 public class PulsarStreamMessage extends PulsarMessage implements StreamMessage {
-    private Stream payload;
+    //private Stream payload;
 
     /**
-     *
+     * Empty byte array for initialisation purposes.
      */
+    private static final byte[] EMPTY = new byte[]{};
+    private byte[] payload = EMPTY;
+
+    /**
+     * list holding the message body
+     */
+    private ArrayList body;
+
+    /**
+     * the current read position
+     */
+    private int pos;
+
+    /**
+     * InputStream used to read the current byte[]
+     */
+    private ByteArrayInputStream byteStream;
+
     public PulsarStreamMessage() throws JMSException {
-        setJMSType(PulsarConfig.STREAM_MESSAGE);
         headers = new HashMap<>();
         headers.put(PROPERTIES, new HashMap<String, Serializable>());
+        setJMSType(PulsarConfig.STREAM_MESSAGE);
+        setToWriteOnlyMode();
     }
 
     /* (non-Javadoc)
@@ -25,7 +47,9 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public void clearBody() throws JMSException {
-        payload = null;
+        payload = EMPTY;
+        body.clear();
+        pos = 0;
     }
 
     /* (non-Javadoc)
@@ -41,8 +65,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public boolean readBoolean() throws JMSException {
-        // TODO Auto-generated method stub
-        return false;
+        return MessageConverterUtils.convertToBoolean(readInternal());
     }
 
     /* (non-Javadoc)
@@ -50,8 +73,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public byte readByte() throws JMSException {
-        // TODO Auto-generated method stub
-        return 0;
+        return MessageConverterUtils.convertToByte(readInternal());
     }
 
     /* (non-Javadoc)
@@ -59,8 +81,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public short readShort() throws JMSException {
-        // TODO Auto-generated method stub
-        return 0;
+        return MessageConverterUtils.convertToShort(readInternal());
     }
 
     /* (non-Javadoc)
@@ -68,8 +89,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public char readChar() throws JMSException {
-        // TODO Auto-generated method stub
-        return 0;
+        return MessageConverterUtils.convertToChar(readInternal());
     }
 
     /* (non-Javadoc)
@@ -77,8 +97,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public int readInt() throws JMSException {
-        // TODO Auto-generated method stub
-        return 0;
+        return MessageConverterUtils.convertToInt(readInternal());
     }
 
     /* (non-Javadoc)
@@ -86,8 +105,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public long readLong() throws JMSException {
-        // TODO Auto-generated method stub
-        return 0;
+        return MessageConverterUtils.convertToLong(readInternal());
     }
 
     /* (non-Javadoc)
@@ -95,8 +113,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public float readFloat() throws JMSException {
-        // TODO Auto-generated method stub
-        return 0;
+        return MessageConverterUtils.convertToFloat(readInternal());
     }
 
     /* (non-Javadoc)
@@ -104,8 +121,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public double readDouble() throws JMSException {
-        // TODO Auto-generated method stub
-        return 0;
+        return MessageConverterUtils.convertToDouble(readInternal());
     }
 
     /* (non-Javadoc)
@@ -113,8 +129,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public String readString() throws JMSException {
-        // TODO Auto-generated method stub
-        return null;
+        return MessageConverterUtils.convertToString(readInternal());
     }
 
     /* (non-Javadoc)
@@ -122,8 +137,23 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public int readBytes(byte[] value) throws JMSException {
-        // TODO Auto-generated method stub
-        return 0;
+        //first call to readBytes
+        if (this.payload == null && this.byteStream == null) {
+            this.payload = MessageConverterUtils.convertToBytes(readInternal());
+            this.byteStream = new ByteArrayInputStream(this.payload);
+        }
+        //read
+        int count = this.byteStream.read(value, 0, value.length);
+        //byte[] completely read but maybe no eof (-1) yet
+        if (count < value.length) {
+            this.payload = null;
+        }
+        //eof - reset the stream
+        if (count < 0) {
+            this.byteStream = null;
+        }
+
+        return count;
     }
 
     /* (non-Javadoc)
@@ -131,8 +161,14 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public Object readObject() throws JMSException {
-        // TODO Auto-generated method stub
-        return null;
+        Object value = readInternal();
+        if (value == null) {
+            throw new NullPointerException("null is not allowed.");
+        }
+        if (MessageUtils.isValidType(value) == false) {
+            throw new MessageFormatException("invalid type");
+        }
+        return value;
     }
 
     /* (non-Javadoc)
@@ -140,8 +176,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public void writeBoolean(boolean value) throws JMSException {
-        // TODO Auto-generated method stub
-
+        writeInternal(new Boolean(value));
     }
 
     /* (non-Javadoc)
@@ -149,8 +184,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public void writeByte(byte value) throws JMSException {
-        // TODO Auto-generated method stub
-
+        writeInternal(new Byte(value));
     }
 
     /* (non-Javadoc)
@@ -158,8 +192,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public void writeShort(short value) throws JMSException {
-        // TODO Auto-generated method stub
-
+        writeInternal(new Short(value));
     }
 
     /* (non-Javadoc)
@@ -167,8 +200,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public void writeChar(char value) throws JMSException {
-        // TODO Auto-generated method stub
-
+        writeInternal(new Character(value));
     }
 
     /* (non-Javadoc)
@@ -176,8 +208,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public void writeInt(int value) throws JMSException {
-        // TODO Auto-generated method stub
-
+        writeInternal(new Integer(value));
     }
 
     /* (non-Javadoc)
@@ -185,8 +216,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public void writeLong(long value) throws JMSException {
-        // TODO Auto-generated method stub
-
+        writeInternal(new Long(value));
     }
 
     /* (non-Javadoc)
@@ -194,8 +224,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public void writeFloat(float value) throws JMSException {
-        // TODO Auto-generated method stub
-
+        writeInternal(new Float(value));
     }
 
     /* (non-Javadoc)
@@ -203,8 +232,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public void writeDouble(double value) throws JMSException {
-        // TODO Auto-generated method stub
-
+        writeInternal(new Double(value));
     }
 
     /* (non-Javadoc)
@@ -212,8 +240,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public void writeString(String value) throws JMSException {
-        // TODO Auto-generated method stub
-
+        writeInternal(value);
     }
 
     /* (non-Javadoc)
@@ -221,18 +248,29 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public void writeBytes(byte[] value) throws JMSException {
-        // TODO Auto-generated method stub
+        byte[] bytes = null;
+        //copy array
+        if (value != null) {
+            CommonUtils.copy(value);
+        }
 
+        //set value
+        writeInternal(bytes);
     }
 
     /* (non-Javadoc)
      * @see javax.jms.StreamMessage#writeBytes(byte[], int, int)
      */
     @Override
-    public void writeBytes(byte[] value, int offset, int length)
-            throws JMSException {
-        // TODO Auto-generated method stub
-
+    public void writeBytes(byte[] value, int offset, int length) throws JMSException {
+        byte[] bytes = null;
+        //copy array
+        if (value != null) {
+            bytes = new byte[length];
+            System.arraycopy(value, offset, bytes, 0, length);
+        }
+        //set value
+        writeInternal(bytes);
     }
 
     /* (non-Javadoc)
@@ -240,8 +278,11 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public void writeObject(Object value) throws JMSException {
-        // TODO Auto-generated method stub
-
+        checkWriteMode();
+        if (MessageUtils.isValidType(value) == false) {
+            throw new MessageFormatException("invalid type");
+        }
+        writeInternal(value);
     }
 
     /* (non-Javadoc)
@@ -249,8 +290,40 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
      */
     @Override
     public void reset() throws JMSException {
-        // TODO Auto-generated method stub
+        //set read-only mode
+        this.readOnlyBody = true;
+        this.pos = 0;
+    }
 
+    private void setToWriteOnlyMode() {
+        this.body = new ArrayList();
+        this.readOnlyBody = false;
+    }
+
+    private Object readInternal()
+            throws MessageNotReadableException, MessageEOFException, MessageFormatException {
+        //read mode?
+        checkReadMode();
+        //pending byte[] field?
+        if (this.payload != null) {
+            throw new MessageFormatException("There is a pending read of a byte[] field.");
+        }
+        //another field available?
+        if (this.pos >= this.body.size()) {
+            throw new MessageEOFException("Trying to read entry at position "
+                    + this.pos +
+                    " while only " +
+                    this.body.size() +
+                    " entries are available");
+        }
+        Object value = this.body.get(this.pos);
+        this.pos++;
+        return value;
+    }
+
+    private void writeInternal(Object value) throws MessageNotWriteableException {
+        checkWriteMode();
+        this.body.add(value);
     }
 
 }

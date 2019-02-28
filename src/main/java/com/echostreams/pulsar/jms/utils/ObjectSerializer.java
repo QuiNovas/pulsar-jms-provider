@@ -40,6 +40,4 @@ public class ObjectSerializer<T> implements Serializable {
             throw new RuntimeException("Failed to deserialize object.", e);
         }
     }
-
-
 }

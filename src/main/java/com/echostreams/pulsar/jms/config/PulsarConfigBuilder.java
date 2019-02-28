@@ -1,4 +1,4 @@
-package com.echostreams.pulsar.jms;
+package com.echostreams.pulsar.jms.config;
 
 import java.util.Properties;
 
@@ -9,6 +9,8 @@ public class PulsarConfigBuilder {
     public Properties build() {
         return config;
     }
+
+	// TODO load config for the given path for tls/authenz authentication
 
     /**
      * @return the brokerList
