@@ -116,19 +116,16 @@ public class PulsarMessageConsumer implements MessageConsumer {
         PulsarMessage pulsarMessage = null;
         try {
             // Wait until a message is available
-            do {
-                msg = consumer.receive();
-                if (msg != null) {
-                    pulsarMessage = (PulsarMessage) new ObjectSerializer().byteArrayToObject(msg);
+            while ((msg = consumer.receive()) != null) {
+                pulsarMessage = (PulsarMessage) new ObjectSerializer().byteArrayToObject(msg);
 
-                    // Extract the message as a printable string and then log
-                    LOGGER.info("Received message='{}' with msg-id={}", pulsarMessage.getBody(pulsarMessage.getJMSType().getClass()), msg.getMessageId());
+                // Extract the message as a printable string and then log
+                LOGGER.info("Received message='{}' with msg-id={}", pulsarMessage.getBody(pulsarMessage.getJMSType().getClass()), msg.getMessageId());
 
-                    // Acknowledge processing of the message so that it can be deleted
+                // Acknowledge processing of the message so that it can be deleted
 
-                    consumer.acknowledge(msg);
-                }
-            } while (true);
+                consumer.acknowledge(msg);
+            }
         } catch (PulsarClientException e) {
             LOGGER.error("Exception during receiving message", e);
         } catch (JMSException e) {

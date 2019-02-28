@@ -39,7 +39,7 @@ public class PulsarJMSClientProvider {
     private void executeProducerByteTest() throws JMSException {
         con = factory.createConnection();
         session = con.createSession();
-        topic = session.createTopic("testByte");
+        topic = session.createTopic("test");
 
         MessageProducer producer = session.createProducer(topic);
 
