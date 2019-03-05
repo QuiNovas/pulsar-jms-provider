@@ -1,9 +1,9 @@
 package com.echostreams.pulsar.jms.client;
 
-import com.echostreams.pulsar.jms.utils.ObjectSerializer;
-import com.echostreams.pulsar.jms.config.PulsarConfigBuilder;
 import com.echostreams.pulsar.jms.auth.AthenzAuthParams;
 import com.echostreams.pulsar.jms.auth.TLSAuthParams;
+import com.echostreams.pulsar.jms.config.PulsarConfigBuilder;
+import com.echostreams.pulsar.jms.utils.ObjectSerializer;
 import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 import com.echostreams.pulsar.jms.utils.StringDeserializer;
 import com.echostreams.pulsar.jms.utils.StringSerializer;
@@ -74,15 +74,8 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         config = builder.build();
 		return new PulsarConnection(config);
 	}*/
-
     public Connection createConnection() throws JMSException {
-        PulsarClient client = null;
-        try {
-            client = PulsarClient.builder().serviceUrl(DEFAULT_BROKER).build();
-        } catch (PulsarClientException e) {
-            LOGGER.error("Could not create the connection :", e);
-        }
-        return new PulsarConnection(client);
+        return createConnection(null, null);
     }
 
     /*
@@ -94,8 +87,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
     @Override
     public Connection createConnection(String userName, String password)
             throws JMSException {
-        // TODO Auto-generated method stub
-        return null;
+        return createPulsarConnection(userName, password);
     }
 
     /*
@@ -105,8 +97,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
      */
     @Override
     public JMSContext createContext() {
-        // TODO Auto-generated method stub
-        return null;
+        return createContext(null, null, JMSContext.AUTO_ACKNOWLEDGE);
     }
 
     /*
@@ -117,8 +108,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
      */
     @Override
     public JMSContext createContext(String userName, String password) {
-        // TODO Auto-generated method stub
-        return null;
+        return createContext(userName, password, JMSContext.AUTO_ACKNOWLEDGE);
     }
 
     /*
@@ -130,8 +120,13 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
     @Override
     public JMSContext createContext(String userName, String password,
                                     int sessionMode) {
-        // TODO Auto-generated method stub
-        return null;
+        JMSContext jmsContext = null;
+        try {
+            jmsContext = createPulsarConnection(userName, password, sessionMode);
+        } catch (JMSException e) {
+            LOGGER.error("createContext error ", e);
+        }
+        return jmsContext;
     }
 
     /*
@@ -141,8 +136,47 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
      */
     @Override
     public JMSContext createContext(int sessionMode) {
-        // TODO Auto-generated method stub
-        return null;
+        return createContext(null, null, sessionMode);
+    }
+
+    @Override
+    public QueueConnection createQueueConnection() throws JMSException {
+        return (QueueConnection) createConnection();
+    }
+
+    @Override
+    public QueueConnection createQueueConnection(String userName, String password) throws JMSException {
+        return (QueueConnection) createConnection(userName, password);
+    }
+
+    @Override
+    public TopicConnection createTopicConnection() throws JMSException {
+        return (TopicConnection) createConnection();
+    }
+
+    @Override
+    public TopicConnection createTopicConnection(String userName, String password) throws JMSException {
+        return (TopicConnection) createConnection(userName, password);
+    }
+
+    private Connection createPulsarConnection(String userName, String password) throws JMSException {
+        PulsarClient client = null;
+        try {
+            client = PulsarClient.builder().serviceUrl(DEFAULT_BROKER).build();
+        } catch (PulsarClientException e) {
+            LOGGER.error("Could not create the connection :", e);
+        }
+        return new PulsarConnection(client);
+    }
+
+    private JMSContext createPulsarConnection(String userName, String password, int sessionMode) throws JMSException {
+        PulsarClient client = null;
+        try {
+            client = PulsarClient.builder().serviceUrl(DEFAULT_BROKER).build();
+        } catch (PulsarClientException e) {
+            LOGGER.error("Could not create the connection :", e);
+        }
+        return new PulsarJMSContext(client);
     }
 
     public static PulsarClient tlsAuthentication(TLSAuthParams tlsAuthParams) {
@@ -197,23 +231,4 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         return client;
     }
 
-    @Override
-    public QueueConnection createQueueConnection() throws JMSException {
-        return (QueueConnection) createConnection();
-    }
-
-    @Override
-    public QueueConnection createQueueConnection(String s, String s1) throws JMSException {
-        return null;
-    }
-
-    @Override
-    public TopicConnection createTopicConnection() throws JMSException {
-        return (TopicConnection) createConnection();
-    }
-
-    @Override
-    public TopicConnection createTopicConnection(String s, String s1) throws JMSException {
-        return null;
-    }
 }

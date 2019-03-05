@@ -1,7 +1,6 @@
 package com.echostreams.pulsar.jms.client;
 
 import com.echostreams.pulsar.jms.message.*;
-import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,16 +10,20 @@ import java.io.Serializable;
 import java.util.Properties;
 
 public class PulsarSession implements Session, QueueSession, TopicSession {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PulsarSession.class);
+
     private Properties config;
     private PulsarMessageProducer producer;
     private PulsarMessageConsumer consumer;
-    private static final Logger LOGGER = LoggerFactory.getLogger(PulsarSession.class);
     private MessageListener listener;
+    private PulsarConnection connection;
+    private int acknowledgeMode;
+    private boolean transacted;
 
-    PulsarConnection connection;
-
-    public PulsarSession(PulsarConnection connection) {
+    public PulsarSession(PulsarConnection connection, boolean transacted, int acknowledgeMode) {
         this.connection = connection;
+        this.transacted = transacted;
+        this.acknowledgeMode = acknowledgeMode;
     }
 
     /* (non-Javadoc)
@@ -97,8 +100,7 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
      */
     @Override
     public boolean getTransacted() throws JMSException {
-        // TODO Auto-generated method stub
-        return false;
+        return this.transacted;
     }
 
     /* (non-Javadoc)
@@ -106,7 +108,7 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
      */
     @Override
     public int getAcknowledgeMode() throws JMSException {
-        return 0;
+        return this.acknowledgeMode;
     }
 
     /* (non-Javadoc)
@@ -177,13 +179,15 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
      * @see javax.jms.Session#createProducer(javax.jms.Destination)
      */
     @Override
-    public MessageProducer createProducer(Destination destination)
-            throws JMSException {
+    public PulsarMessageProducer createProducer(Destination destination) throws JMSException {
+
+        if (destination == null)
+            throw new java.lang.IllegalArgumentException("destination may not be null!");
+
         try {
-            producer = new PulsarMessageProducer(config, destination, connection);
+            producer = new PulsarMessageProducer(destination, this);
         } catch (PulsarClientException e) {
-            LOGGER.error("Pulsar Session exception", e);
-//            throw new PulsarJMSException("PulsarClientException", e.getMessage());
+            LOGGER.error("Pulsar createProducer exception", e);
         }
         return producer;
     }
@@ -192,28 +196,31 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
      * @see javax.jms.Session#createConsumer(javax.jms.Destination)
      */
     @Override
-    public MessageConsumer createConsumer(Destination destination)
+    public PulsarMessageConsumer createConsumer(Destination destination)
             throws JMSException {
-        consumer = new PulsarMessageConsumer(config, destination, connection);
-        return consumer;
+        return createConsumer(destination, null, false);
     }
 
     /* (non-Javadoc)
      * @see javax.jms.Session#createConsumer(javax.jms.Destination, java.lang.String)
      */
     @Override
-    public MessageConsumer createConsumer(Destination destination,
-                                          String messageSelector) throws JMSException {
-        return createConsumer(destination);
+    public PulsarMessageConsumer createConsumer(Destination destination,
+                                                String messageSelector) throws JMSException {
+        return createConsumer(destination, messageSelector, false);
     }
 
     /* (non-Javadoc)
      * @see javax.jms.Session#createConsumer(javax.jms.Destination, java.lang.String, boolean)
      */
     @Override
-    public MessageConsumer createConsumer(Destination destination,
-                                          String messageSelector, boolean noLocal) throws JMSException {
-        return createConsumer(destination);
+    public PulsarMessageConsumer createConsumer(Destination destination,
+                                                String messageSelector, boolean noLocal) throws JMSException {
+        if (destination == null)
+            throw new java.lang.IllegalArgumentException("destination may not be null!");
+
+        consumer = new PulsarMessageConsumer(destination, messageSelector, this);
+        return consumer;
     }
 
     /* (non-Javadoc)
@@ -247,17 +254,17 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
 
     @Override
     public QueueReceiver createReceiver(Queue queue) throws JMSException {
-        return null;
+        return createReceiver(queue, null);
     }
 
     @Override
-    public QueueReceiver createReceiver(Queue queue, String s) throws JMSException {
-        return null;
+    public QueueReceiver createReceiver(Queue queue, String messageSelector) throws JMSException {
+        return createConsumer(queue, messageSelector);
     }
 
     @Override
     public QueueSender createSender(Queue queue) throws JMSException {
-        return null;
+        return createProducer(queue);
     }
 
     /* (non-Javadoc)
@@ -270,22 +277,20 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
 
     @Override
     public TopicSubscriber createSubscriber(Topic topic) throws JMSException {
-        return null;
+        return createSubscriber(topic, null, false);
     }
 
     @Override
-    public TopicSubscriber createSubscriber(Topic topic, String s, boolean b) throws JMSException {
-        return null;
+    public TopicSubscriber createSubscriber(Topic topic, String messageSelector, boolean noLocal) throws JMSException {
+        return createConsumer(topic, messageSelector, noLocal);
     }
 
     /* (non-Javadoc)
      * @see javax.jms.Session#createDurableSubscriber(javax.jms.Topic, java.lang.String)
      */
     @Override
-    public TopicSubscriber createDurableSubscriber(Topic topic, String name)
-            throws JMSException {
-        // TODO Auto-generated method stub
-        return null;
+    public TopicSubscriber createDurableSubscriber(Topic topic, String name) throws JMSException {
+        return createDurableSubscriber(topic, name, null, false);
     }
 
     /* (non-Javadoc)
@@ -294,13 +299,22 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
     @Override
     public TopicSubscriber createDurableSubscriber(Topic topic, String name,
                                                    String messageSelector, boolean noLocal) throws JMSException {
-        // TODO Auto-generated method stub
-        return null;
+        if (topic == null)
+            throw new java.lang.IllegalArgumentException("topic is null!");
+        if (name == null)
+            throw new java.lang.IllegalArgumentException("name is null!");
+
+        PulsarMessageConsumer pulsarMessageConsumer =
+                new PulsarMessageConsumer((PulsarDestination) topic, messageSelector, this);
+
+        pulsarMessageConsumer.setNoLocal(noLocal);
+        pulsarMessageConsumer.setDurable(true);
+        return pulsarMessageConsumer;
     }
 
     @Override
     public TopicPublisher createPublisher(Topic topic) throws JMSException {
-        return null;
+        return createProducer(topic);
     }
 
     /* (non-Javadoc)
@@ -309,8 +323,7 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
     @Override
     public MessageConsumer createDurableConsumer(Topic topic, String name)
             throws JMSException {
-        // TODO Auto-generated method stub
-        return null;
+        return createDurableConsumer(topic, name, null, false);
     }
 
     /* (non-Javadoc)
@@ -329,8 +342,7 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
     @Override
     public MessageConsumer createSharedDurableConsumer(Topic topic, String name)
             throws JMSException {
-        // TODO Auto-generated method stub
-        return null;
+        return createSharedDurableConsumer(topic, name, null);
     }
 
     /* (non-Javadoc)
@@ -348,7 +360,7 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
      */
     @Override
     public QueueBrowser createBrowser(Queue queue) throws JMSException {
-        throw new UnsupportedOperationException("Browsing is not supported for Kafka");
+        throw new UnsupportedOperationException("Browsing is not supported for Pulsar");
     }
 
     /* (non-Javadoc)
@@ -357,7 +369,7 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
     @Override
     public QueueBrowser createBrowser(Queue queue, String messageSelector)
             throws JMSException {
-        throw new UnsupportedOperationException("Browsing is not supported for Kafka");
+        throw new UnsupportedOperationException("Browsing is not supported for Pulsar");
     }
 
     /* (non-Javadoc)
@@ -365,7 +377,7 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
      */
     @Override
     public TemporaryQueue createTemporaryQueue() throws JMSException {
-        throw new UnsupportedOperationException("Temporary queues are not supported for Kafka");
+        throw new UnsupportedOperationException("Temporary queues are not supported for Pulsar");
     }
 
     /* (non-Javadoc)
@@ -373,7 +385,7 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
      */
     @Override
     public TemporaryTopic createTemporaryTopic() throws JMSException {
-        throw new UnsupportedOperationException("Temporary topics are not supported for Kafka");
+        throw new UnsupportedOperationException("Temporary topics are not supported for Pulsar");
     }
 
     /* (non-Javadoc)
@@ -384,4 +396,8 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
         consumer.unsubscribe();
     }
 
+
+    public PulsarConnection getConnection() {
+        return connection;
+    }
 }

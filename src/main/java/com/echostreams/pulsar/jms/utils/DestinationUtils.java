@@ -27,5 +27,6 @@ public class DestinationUtils {
         //TODO need to add for temporary if needed
         throw new JMSException("Could not support non-OpenJMS destination into a Pulsar destination: " + destination);
     }
+
 }
 

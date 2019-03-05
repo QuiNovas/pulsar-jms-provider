@@ -1,12 +1,14 @@
 package com.echostreams.pulsar.jms.client;
 
 import com.echostreams.pulsar.jms.common.PulsarConnectionMetaDataImpl;
+import com.echostreams.pulsar.jms.utils.PulsarJMSException;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
 
 import javax.jms.*;
 import java.util.Properties;
 
-public class PulsarConnection implements Connection {
+public class PulsarConnection implements Connection, QueueConnection, TopicConnection {
 
     private static ConnectionMetaData metaData = new PulsarConnectionMetaDataImpl();
 
@@ -24,7 +26,8 @@ public class PulsarConnection implements Connection {
     @Override
     public Session createSession(boolean transacted, int acknowledgeMode)
             throws JMSException {
-        return createSession();
+        session = new PulsarSession(this, transacted, acknowledgeMode);
+        return session;
     }
 
     /* (non-Javadoc)
@@ -32,7 +35,7 @@ public class PulsarConnection implements Connection {
      */
     @Override
     public Session createSession(int sessionMode) throws JMSException {
-        return createSession();
+        return createSession(true, sessionMode);
     }
 
     /* (non-Javadoc)
@@ -40,8 +43,7 @@ public class PulsarConnection implements Connection {
      */
     @Override
     public Session createSession() throws JMSException {
-        session = new PulsarSession(this);
-        return session;
+        return createSession(true, Session.AUTO_ACKNOWLEDGE);
     }
 
     /* (non-Javadoc)
@@ -110,6 +112,11 @@ public class PulsarConnection implements Connection {
     @Override
     public void close() throws JMSException {
         session.close();
+        try {
+            client.close();
+        } catch (PulsarClientException e) {
+            throw new PulsarJMSException("Closing connection exception", e.getMessage());
+        }
     }
 
     /* (non-Javadoc)
@@ -134,9 +141,19 @@ public class PulsarConnection implements Connection {
         return null;
     }
 
+    @Override
+    public TopicSession createTopicSession(boolean transacted, int acknowledgeMode) throws JMSException {
+        return (TopicSession) createSession(transacted, acknowledgeMode);
+    }
+
+    @Override
+    public ConnectionConsumer createConnectionConsumer(Topic topic, String s, ServerSessionPool serverSessionPool, int i) throws JMSException {
+        return null;
+    }
+
     /* (non-Javadoc)
-     * @see javax.jms.Connection#createDurableConnectionConsumer(javax.jms.Topic, java.lang.String, java.lang.String, javax.jms.ServerSessionPool, int)
-     */
+         * @see javax.jms.Connection#createDurableConnectionConsumer(javax.jms.Topic, java.lang.String, java.lang.String, javax.jms.ServerSessionPool, int)
+         */
     @Override
     public ConnectionConsumer createDurableConnectionConsumer(Topic topic,
                                                               String subscriptionName, String messageSelector,
@@ -153,6 +170,16 @@ public class PulsarConnection implements Connection {
             Topic topic, String subscriptionName, String messageSelector,
             ServerSessionPool sessionPool, int maxMessages) throws JMSException {
         // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public QueueSession createQueueSession(boolean transacted, int acknowledgeMode) throws JMSException {
+        return (QueueSession) createSession(transacted, acknowledgeMode);
+    }
+
+    @Override
+    public ConnectionConsumer createConnectionConsumer(Queue queue, String s, ServerSessionPool serverSessionPool, int i) throws JMSException {
         return null;
     }
 

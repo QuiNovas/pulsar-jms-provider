@@ -1,9 +1,27 @@
 package com.echostreams.pulsar.jms.client;
 
+import com.echostreams.pulsar.jms.common.PulsarConnectionMetaDataImpl;
+import com.echostreams.pulsar.jms.message.*;
+import org.apache.pulsar.client.api.PulsarClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.jms.*;
 import java.io.Serializable;
 
 public class PulsarJMSContext implements JMSContext {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PulsarJMSContext.class);
+
+    private static ConnectionMetaData metaData = new PulsarConnectionMetaDataImpl();
+
+    private PulsarJMSProducer producer;
+    private PulsarJMSConsumer consumer;
+    private MessageListener listener;
+    private PulsarClient client;
+
+    public PulsarJMSContext(PulsarClient client) throws JMSException {
+        this.client = client;
+    }
 
     @Override
     public JMSContext createContext(int i) {
@@ -12,7 +30,12 @@ public class PulsarJMSContext implements JMSContext {
 
     @Override
     public JMSProducer createProducer() {
-        return null;
+        /*try {
+            producer = new PulsarJMSProducer(destination, this);
+        } catch (PulsarClientException e) {
+            LOGGER.error("Pulsar createProducer exception", e);
+        }*/
+        return producer;
     }
 
     @Override
@@ -27,7 +50,7 @@ public class PulsarJMSContext implements JMSContext {
 
     @Override
     public ConnectionMetaData getMetaData() {
-        return null;
+        return metaData;
     }
 
     @Override
@@ -62,47 +85,94 @@ public class PulsarJMSContext implements JMSContext {
 
     @Override
     public void close() {
-
+        try {
+            consumer.close();
+        } catch (Exception e) {
+        }
     }
 
     @Override
     public BytesMessage createBytesMessage() {
-        return null;
+        PulsarBytesMessage pulsarBytesMessage = null;
+        try {
+            pulsarBytesMessage = new PulsarBytesMessage();
+        } catch (JMSException e) {
+            LOGGER.error("createBytesMessage error", e);
+        }
+        return pulsarBytesMessage;
     }
 
     @Override
     public MapMessage createMapMessage() {
-        return null;
+        PulsarMapMessage pulsarMapMessage = null;
+        try {
+            pulsarMapMessage = new PulsarMapMessage();
+        } catch (JMSException e) {
+            LOGGER.error("createMapMessage error", e);
+        }
+        return pulsarMapMessage;
     }
 
     @Override
     public Message createMessage() {
-        return null;
+        return createObjectMessage();
     }
 
     @Override
     public ObjectMessage createObjectMessage() {
-        return null;
+        PulsarObjectMessage pulsarObjectMessage = null;
+        try {
+            pulsarObjectMessage = new PulsarObjectMessage();
+        } catch (JMSException e) {
+            LOGGER.error("createObjectMessage error", e);
+        }
+        return pulsarObjectMessage;
     }
 
     @Override
     public ObjectMessage createObjectMessage(Serializable serializable) {
-        return null;
+        PulsarObjectMessage pulsarObjectMessage = null;
+        try {
+            pulsarObjectMessage = new PulsarObjectMessage();
+            pulsarObjectMessage.setObject(serializable);
+        } catch (JMSException e) {
+            LOGGER.error("createObjectMessage error", e);
+        }
+        return pulsarObjectMessage;
     }
 
     @Override
     public StreamMessage createStreamMessage() {
-        return null;
+        PulsarStreamMessage pulsarStreamMessage = null;
+        try {
+            pulsarStreamMessage = new PulsarStreamMessage();
+        } catch (JMSException e) {
+            LOGGER.error("createStreamMessage error", e);
+        }
+        return pulsarStreamMessage;
     }
 
     @Override
     public TextMessage createTextMessage() {
-        return null;
+        PulsarTextMessage pulsarTextMessage = null;
+        try {
+            pulsarTextMessage = new PulsarTextMessage();
+        } catch (JMSException e) {
+            LOGGER.error("createTextMessage error", e);
+        }
+        return pulsarTextMessage;
     }
 
     @Override
-    public TextMessage createTextMessage(String s) {
-        return null;
+    public TextMessage createTextMessage(String value) {
+        PulsarTextMessage pulsarTextMessage = null;
+        try {
+            pulsarTextMessage = new PulsarTextMessage();
+            pulsarTextMessage.setText(value);
+        } catch (JMSException e) {
+            LOGGER.error("createTextMessage error", e);
+        }
+        return pulsarTextMessage;
     }
 
     @Override
@@ -117,7 +187,6 @@ public class PulsarJMSContext implements JMSContext {
 
     @Override
     public void commit() {
-
     }
 
     @Override
@@ -132,32 +201,40 @@ public class PulsarJMSContext implements JMSContext {
 
     @Override
     public JMSConsumer createConsumer(Destination destination) {
-        return null;
+        return createConsumer(destination, null, false);
     }
 
     @Override
-    public JMSConsumer createConsumer(Destination destination, String s) {
-        return null;
+    public JMSConsumer createConsumer(Destination destination, String messageSelector) {
+        return createConsumer(destination, messageSelector, false);
     }
 
     @Override
-    public JMSConsumer createConsumer(Destination destination, String s, boolean b) {
-        return null;
+    public JMSConsumer createConsumer(Destination destination, String messageSelector, boolean noLocal) {
+        try {
+            if (destination == null)
+                throw new java.lang.IllegalArgumentException("destination may not be null!");
+
+            consumer = new PulsarJMSConsumer(destination, messageSelector, this);
+        } catch (JMSException e) {
+            LOGGER.error("createConsumer JMSException ", e);
+        }
+        return consumer;
     }
 
     @Override
-    public Queue createQueue(String s) {
-        return null;
+    public Queue createQueue(String queueName) {
+        return new PulsarQueue(queueName);
     }
 
     @Override
-    public Topic createTopic(String s) {
-        return null;
+    public Topic createTopic(String topicName) {
+        return new PulsarTopic(topicName);
     }
 
     @Override
-    public JMSConsumer createDurableConsumer(Topic topic, String s) {
-        return null;
+    public JMSConsumer createDurableConsumer(Topic topic, String name) {
+        return createDurableConsumer(topic, name, null, false);
     }
 
     @Override
@@ -207,11 +284,18 @@ public class PulsarJMSContext implements JMSContext {
 
     @Override
     public void unsubscribe(String s) {
-
+        try {
+            consumer.unsubscribe();
+        } catch (JMSException e) {
+            LOGGER.error("JMSContext unsubscribe JMSException ", e);
+        }
     }
 
     @Override
     public void acknowledge() {
+    }
 
+    public PulsarClient getClient() {
+        return client;
     }
 }

@@ -1,6 +1,8 @@
 package com.echostreams.pulsar.jms.utils;
 
+import javax.jms.JMSException;
 import javax.jms.MessageFormatException;
+import java.io.UnsupportedEncodingException;
 
 public class MessageConverterUtils {
 
@@ -131,7 +133,29 @@ public class MessageConverterUtils {
         if (value instanceof byte[])
             return CommonUtils.copy((byte[]) value);
 
-        throw new MessageFormatException("Could not convert type to byte[] : ("+value.getClass().getName()+") "+value);
+        throw new MessageFormatException("Could not convert type to byte[] : (" + value.getClass().getName() + ") " + value);
+    }
+
+    public static String decodeString(byte[] data) throws JMSException {
+        try {
+            if (data == null) {
+                return null;
+            }
+            return new String(data, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new JMSException("Invalid UTF-8 encoding: " + e.getMessage());
+        }
+    }
+
+    public static byte[] encodeString(String data) throws JMSException {
+        try {
+            if (data == null) {
+                return null;
+            }
+            return data.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new JMSException("Invalid UTF-8 encoding: " + e.getMessage());
+        }
     }
 
 }

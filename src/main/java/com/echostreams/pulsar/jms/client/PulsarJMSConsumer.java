@@ -14,101 +14,61 @@ import org.slf4j.LoggerFactory;
 import javax.jms.*;
 import java.util.concurrent.TimeUnit;
 
-public class PulsarMessageConsumer implements MessageConsumer, QueueReceiver, TopicSubscriber {
-    private static final Logger LOGGER = LoggerFactory.getLogger(PulsarMessageConsumer.class);
+public class PulsarJMSConsumer implements JMSConsumer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PulsarJMSConsumer.class);
 
     private Consumer consumer;
     private Destination destination;
-    private PulsarSession session;
+    private PulsarJMSContext jmsContext;
     private String messageSelector;
-    private boolean durable;
-    private boolean noLocal;
-    private MessageListener listener = new MessageListener() {
-        @Override
-        public void onMessage(Message message) {
-            // Denault noop listener
-        }
-    };
 
-    /**
-     * consumer config should define a group Id
-     *
-     * @throws JMSException
-     */
-    public PulsarMessageConsumer(Destination destination, String messageSelector, PulsarSession session) throws JMSException {
+    public PulsarJMSConsumer(Destination destination, String messageSelector, PulsarJMSContext jmsContext) throws JMSException {
         try {
             this.destination = destination;
             this.messageSelector = messageSelector;
-            this.session = session;
-            this.consumer = new ConsumerBuilderImpl((PulsarClientImpl) session.getConnection().getClient(), Schema.STRING)
+            this.jmsContext = jmsContext;
+            this.consumer = new ConsumerBuilderImpl((PulsarClientImpl) jmsContext.getClient(), Schema.STRING)
                     .topic(((PulsarDestination) destination).getName())
                     .subscriptionType(SubscriptionType.Shared)
                     .subscriptionName("test-subcription")
                     .subscribe();
         } catch (PulsarClientException e) {
-            LOGGER.error("", e);
+            LOGGER.error("PulsarJMSConsumer exception", e);
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#getMessageSelector()
-     */
     @Override
-    public String getMessageSelector() throws JMSException {
-        // TODO Auto-generated method stub
+    public String getMessageSelector() {
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#getMessageListener()
-     */
     @Override
-    public MessageListener getMessageListener() throws JMSException {
+    public MessageListener getMessageListener() throws JMSRuntimeException {
         return listener;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#setMessageListener(javax.jms.MessageListener)
-     */
     @Override
-    public void setMessageListener(MessageListener listener)
-            throws JMSException {
-        this.listener = listener;
+    public void setMessageListener(MessageListener messageListener) throws JMSRuntimeException {
+
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#receive()
-     */
     @Override
-    public Message receive() throws JMSException {
+    public Message receive() {
         return readMessages(0, TimeUnit.MILLISECONDS);
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#receive(long)
-     */
     @Override
-    public Message receive(long timeout) throws JMSException {
-        return readMessages(5000, TimeUnit.MILLISECONDS);
+    public Message receive(long timeout) {
+        return readMessages(timeout, TimeUnit.MILLISECONDS);
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#receiveNoWait()
-     */
     @Override
-    public Message receiveNoWait() throws JMSException {
+    public Message receiveNoWait() {
         return receive(0);
     }
 
-    public void commit() {
-        // NOOP
-    }
-
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#close()
-     */
     @Override
-    public void close() throws JMSException {
+    public void close() {
         try {
             consumer.close();
         } catch (PulsarClientException e) {
@@ -117,21 +77,28 @@ public class PulsarMessageConsumer implements MessageConsumer, QueueReceiver, To
     }
 
     @Override
-    public Queue getQueue() throws JMSException {
+    public <T> T receiveBody(Class<T> aClass) {
         return null;
     }
 
     @Override
-    public Topic getTopic() throws JMSException {
+    public <T> T receiveBody(Class<T> aClass, long l) {
         return null;
     }
 
     @Override
-    public boolean getNoLocal() throws JMSException {
-        return false;
+    public <T> T receiveBodyNoWait(Class<T> aClass) {
+        return null;
     }
 
-    private PulsarMessage readMessages(int timeout, TimeUnit timeUnit) {
+    private MessageListener listener = new MessageListener() {
+        @Override
+        public void onMessage(Message message) {
+            // Denault noop listener
+        }
+    };
+
+    private PulsarMessage readMessages(long timeout, TimeUnit timeUnit) {
         org.apache.pulsar.client.api.Message<byte[]> msg = null;
         PulsarMessage pulsarMessage = null;
         try {
@@ -162,19 +129,4 @@ public class PulsarMessageConsumer implements MessageConsumer, QueueReceiver, To
         }
     }
 
-    public boolean isDurable() {
-        return durable;
-    }
-
-    public void setDurable(boolean durable) {
-        this.durable = durable;
-    }
-
-    public boolean isNoLocal() {
-        return noLocal;
-    }
-
-    public void setNoLocal(boolean noLocal) {
-        this.noLocal = noLocal;
-    }
 }

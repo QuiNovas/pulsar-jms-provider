@@ -2,6 +2,7 @@ package com.echostreams.pulsar.jms;
 
 import com.echostreams.pulsar.jms.client.PulsarConnectionFactory;
 import com.echostreams.pulsar.jms.client.PulsarDestination;
+import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,17 +16,46 @@ public class PulsarJMSClientProvider {
     private Session session;
     private Destination topic;
 
+    // Queue Test
+    private QueueConnectionFactory qfactory = new PulsarConnectionFactory("pulsar://192.168.43.88:6650");
+    private QueueConnection qcon;
+    private QueueSession qsession;
+    private Queue queue;
+
+    // Topic Test
+    private TopicConnectionFactory tfactory = new PulsarConnectionFactory("pulsar://192.168.43.88:6650");
+    private TopicConnection tcon;
+    private TopicSession tsession;
+    private Topic tp;
+
+    // Jms 2.0
+    private ConnectionFactory cfactory = new PulsarConnectionFactory("pulsar://192.168.43.88:6650");
+    private JMSContext jmsContext;
+
+    private final ProducerConfigurationData conf = new ProducerConfigurationData();
+
     public static void main(String[] args) throws JMSException {
         PulsarJMSClientProvider pulsarJMSClientProvider = new PulsarJMSClientProvider();
         pulsarJMSClientProvider.executeProducerTest();
-        pulsarJMSClientProvider.executeProducerByteTest();
+        //pulsarJMSClientProvider.executeProducerByteTest();
         pulsarJMSClientProvider.executeConsumerTest();
+
+        // Queue
+        pulsarJMSClientProvider.executeQSenderTest();
+        pulsarJMSClientProvider.executeQReceiverTest();
+
+        //Topic
+        pulsarJMSClientProvider.executeTopicPublisherTest();
+        pulsarJMSClientProvider.executeTopicSubscriberTest();
+
+        //JMS2-JMSContext
+
     }
 
     private void executeProducerTest() throws JMSException {
         con = factory.createConnection();
         session = con.createSession();
-        topic = session.createTopic("test");
+        topic = session.createQueue("test");
 
         MessageProducer producer = session.createProducer(topic);
 
@@ -60,5 +90,71 @@ public class PulsarJMSClientProvider {
         consumer.receive(5000);
         session.unsubscribe(((PulsarDestination) topic).getName());
         consumer.close();
+    }
+
+    private void executeQReceiverTest() throws JMSException {
+        qcon = qfactory.createQueueConnection();
+        qsession = qcon.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
+        queue = qsession.createQueue("test");
+
+        QueueReceiver qr = qsession.createReceiver(queue);
+        TextMessage tm = (TextMessage)qr.receiveNoWait();
+        if(tm != null) {
+            LOGGER.info("got text message: " + tm.getText());
+            LOGGER.info("string property: " + tm.getStringProperty("string"));
+            LOGGER.info("int property: " + tm.getIntProperty("int"));
+            LOGGER.info("float property: " + tm.getFloatProperty("float"));
+            LOGGER.info("long property: " + tm.getLongProperty("long"));
+        } else {
+            LOGGER.info("got nothing");
+        }
+        qr.close();
+        qsession.close();
+
+    }
+
+    private void executeQSenderTest() throws JMSException {
+        qcon = qfactory.createQueueConnection();
+        qsession = qcon.createQueueSession(true, Session.AUTO_ACKNOWLEDGE);
+        queue = qsession.createQueue("test");
+
+        QueueSender qsend = qsession.createSender(queue);
+        TextMessage tm = qsession.createTextMessage();
+        tm.setText("How's it bud?");
+        tm.setStringProperty("string", "yet another string");
+        tm.setIntProperty("int", 456);
+        tm.setFloatProperty("float", 9.82f);
+        tm.setLongProperty("long", 987654321);
+        qsend.send(tm);
+        qsend.close();
+        qsession.close();
+
+    }
+
+    private void executeTopicSubscriberTest() throws JMSException {
+        tcon = tfactory.createTopicConnection();
+        tsession = tcon.createTopicSession(false, Session.AUTO_ACKNOWLEDGE);
+        tp = tsession.createTopic("test");
+
+        TopicSubscriber tsub = tsession.createSubscriber(tp);
+        Message msg = tsub.receiveNoWait();
+        LOGGER.info("initial message", msg);
+
+        tsub.close();
+        tsession.close();
+
+    }
+
+    private void executeTopicPublisherTest() throws JMSException {
+        tcon = tfactory.createTopicConnection();
+        tsession = tcon.createTopicSession(false, Session.AUTO_ACKNOWLEDGE);
+        tp = tsession.createTopic("test");
+
+        TopicPublisher pub = tsession.createPublisher(tp);
+        ObjectMessage om = tsession.createObjectMessage(new Integer(99));
+        pub.publish(om);
+        pub.close();
+        tsession.close();
+
     }
 }
