@@ -12,9 +12,6 @@ public class DefaultListener implements MessageListener {
         this.consumer = consumer;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageListener#onMessage(javax.jms.Message)
-     */
     @Override
     public void onMessage(Message message) {
         // TODO Auto-generated method stub

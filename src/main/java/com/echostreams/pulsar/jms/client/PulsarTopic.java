@@ -18,17 +18,11 @@ public class PulsarTopic implements Topic, PulsarDestination {
         this.topicName = topicName;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.Topic#getTopicName()
-     */
     @Override
     public String getTopicName() throws JMSException {
         return topicName;
     }
 
-    /* (non-Javadoc)
-     * @see PulsarDestination#getName()
-     */
     @Override
     public String getName() throws JMSException {
         return getTopicName();

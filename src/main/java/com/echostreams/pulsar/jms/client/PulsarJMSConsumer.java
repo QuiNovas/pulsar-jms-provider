@@ -39,7 +39,7 @@ public class PulsarJMSConsumer implements JMSConsumer {
 
     @Override
     public String getMessageSelector() {
-        return null;
+        return messageSelector;
     }
 
     @Override
@@ -54,17 +54,21 @@ public class PulsarJMSConsumer implements JMSConsumer {
 
     @Override
     public Message receive() {
-        return readMessages(0, TimeUnit.MILLISECONDS);
+        return readMessages(-1, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public Message receive(long timeout) {
+        // Configure for infinite wait when timeout is zero (JMS Spec)
+        if (timeout == 0) {
+            timeout = -1;
+        }
         return readMessages(timeout, TimeUnit.MILLISECONDS);
     }
 
     @Override
     public Message receiveNoWait() {
-        return receive(0);
+        return receive();
     }
 
     @Override
@@ -114,9 +118,9 @@ public class PulsarJMSConsumer implements JMSConsumer {
                 consumer.acknowledge(msg);
             }
         } catch (PulsarClientException e) {
-            LOGGER.error("Exception during receiving message", e);
+            LOGGER.error("PulsarClientException during receiving message", e);
         } catch (JMSException e) {
-            LOGGER.error("Exception during receiving message", e);
+            LOGGER.error("JMSException during receiving message", e);
         }
         return pulsarMessage;
     }

@@ -1,5 +1,7 @@
 package com.echostreams.pulsar.jms.utils;
 
+import com.echostreams.pulsar.jms.exceptions.PulsarJMSException;
+
 import java.io.InputStream;
 import java.util.Properties;
 

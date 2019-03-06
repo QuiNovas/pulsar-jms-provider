@@ -25,10 +25,10 @@ public interface PulsarConfig {
 
     // JNDI related constants
     //public static final String JNDI_CONTEXT_FACTORY = PulsarJMSInitialContextFactory.class.getName();
-    public static final String JNDI_CONNECTION_FACTORY_NAME = "factory/ConnectionFactory";
-    public static final String JNDI_QUEUE_CONNECTION_FACTORY_NAME = "factory/QueueConnectionFactory";
-    public static final String JNDI_TOPIC_CONNECTION_FACTORY_NAME = "factory/TopicConnectionFactory";
-    public static final String JNDI_ENV_CLIENT_ID = "ffmq.naming.clientID";
+    public static final String JNDI_CONNECTION_FACTORY_NAME = "pulsar/ConnectionFactory";
+    public static final String JNDI_QUEUE_CONNECTION_FACTORY_NAME = "pulsar/QueueConnectionFactory";
+    public static final String JNDI_TOPIC_CONNECTION_FACTORY_NAME = "pulsar/TopicConnectionFactory";
+    public static final String JNDI_ENV_CLIENT_ID = "pulsar.naming.clientID";
 
     // Max name size
     public static final int MAX_QUEUE_NAME_SIZE = 128;

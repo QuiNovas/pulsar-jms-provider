@@ -50,51 +50,33 @@ public class PulsarMessageConsumer implements MessageConsumer, QueueReceiver, To
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#getMessageSelector()
-     */
     @Override
     public String getMessageSelector() throws JMSException {
         // TODO Auto-generated method stub
-        return null;
+        return this.messageSelector;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#getMessageListener()
-     */
     @Override
     public MessageListener getMessageListener() throws JMSException {
         return listener;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#setMessageListener(javax.jms.MessageListener)
-     */
     @Override
     public void setMessageListener(MessageListener listener)
             throws JMSException {
         this.listener = listener;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#receive()
-     */
     @Override
     public Message receive() throws JMSException {
         return readMessages(0, TimeUnit.MILLISECONDS);
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#receive(long)
-     */
     @Override
     public Message receive(long timeout) throws JMSException {
         return readMessages(5000, TimeUnit.MILLISECONDS);
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#receiveNoWait()
-     */
     @Override
     public Message receiveNoWait() throws JMSException {
         return receive(0);
@@ -104,9 +86,6 @@ public class PulsarMessageConsumer implements MessageConsumer, QueueReceiver, To
         // NOOP
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.MessageConsumer#close()
-     */
     @Override
     public void close() throws JMSException {
         try {

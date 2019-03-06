@@ -16,33 +16,21 @@ public class PulsarTextMessage extends PulsarMessage implements TextMessage {
         setJMSType(PulsarConfig.TEXT_MESSAGE);
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.Message#clearBody()
-     */
     @Override
     public void clearBody() throws JMSException {
         payload = null;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.Message#getBody(java.lang.Class)
-     */
     @Override
     public <T> T getBody(Class<T> c) throws JMSException {
         return (T) payload;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.TextMessage#setText(java.lang.String)
-     */
     @Override
     public void setText(String string) throws JMSException {
         payload = string;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.TextMessage#getText()
-     */
     @Override
     public String getText() throws JMSException {
         return payload;

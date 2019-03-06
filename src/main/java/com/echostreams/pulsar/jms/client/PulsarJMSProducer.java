@@ -1,6 +1,11 @@
 package com.echostreams.pulsar.jms.client;
 
+import com.echostreams.pulsar.jms.exceptions.JMSExceptionSupport;
+import com.echostreams.pulsar.jms.utils.DestinationUtils;
 import com.echostreams.pulsar.jms.utils.MessageConverterUtils;
+import com.echostreams.pulsar.jms.utils.MessageUtils;
+import com.echostreams.pulsar.jms.utils.ObjectSerializer;
+import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.Schema;
@@ -11,66 +16,103 @@ import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 import java.io.Serializable;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class PulsarJMSProducer implements JMSProducer {
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarJMSProducer.class);
 
-    private static final int DEFAULT_PRIORITY = 4;
-    private static final int DEFAULT_DELIERY_MODE = DeliveryMode.PERSISTENT;
-    private static final int DEFAULT_TTL = 60000;
+    private CompletionListener completionListener;
+    private PulsarJMSContext jmsContext;
     private Producer<byte[]> producer;
-    private PulsarDestination destination;
+
+    // Producer send configuration
+    private long deliveryDelay = Message.DEFAULT_DELIVERY_DELAY;
+    private int deliveryMode = DeliveryMode.PERSISTENT;
+    private int priority = Message.DEFAULT_PRIORITY;
+    private long timeToLive = Message.DEFAULT_TIME_TO_LIVE;
     private boolean disbledMessageId;
     private boolean disableMessageTimestamp;
-    private int deliveryMode = DEFAULT_DELIERY_MODE;
-    private int priority = DEFAULT_PRIORITY;
-    private long timeToLive = DEFAULT_TTL;
-    private long deliveryDelay;
-    /* holds the message properties */
-    private Hashtable props;
+
+    // Message Headers
     private String correlationId;
-    /* read only flag for the message body */
+    private String type;
+    private Destination replyTo;
+    private byte[] correlationIdBytes;
+
+    // holds the message properties
+    private final Map<String, Object> props = new HashMap<String, Object>();
+    // read only flag for the message body
     protected boolean readOnlyBody;
-    /* read only flag for the message properties */
+    // read only flag for the message properties
     protected boolean readOnlyProperties;
-    private CompletionListener completionListener;
+
+    private final ReentrantLock sendLock = new ReentrantLock();
 
 
-    public PulsarJMSProducer(PulsarConnection connection) throws PulsarClientException, JMSException {
-        this.destination = (PulsarDestination) destination;
+    public PulsarJMSProducer(PulsarJMSContext jmsContext) throws PulsarClientException, JMSException {
+        this.jmsContext = jmsContext;
+        this.replyTo = jmsContext.getDestination();
         //TODO need to map with pulsar producer config
-        this.producer = new ProducerBuilderImpl((PulsarClientImpl) connection.getClient(), Schema.BYTES).topic(((PulsarDestination) destination).getName()).create();
+        this.producer = new ProducerBuilderImpl((PulsarClientImpl) jmsContext.getClient(), Schema.BYTES).topic(((PulsarDestination) replyTo).getName()).create();
     }
-
 
     @Override
     public JMSProducer send(Destination destination, Message message) {
-        // send(destination, message, deliveryMode, priority, timeToLive);
-        return null;
+        try {
+            sendMessage(destination, message);
+        } catch (JMSException e) {
+            throw JMSExceptionSupport.createRuntimeException(e);
+        }
+        return this;
     }
 
     @Override
-    public JMSProducer send(Destination destination, String messsage) {
-        // producer.send(messsage);
-        return null;
+    public JMSProducer send(Destination destination, String body) {
+        try {
+            TextMessage message = jmsContext.createTextMessage(body);
+            sendMessage(destination, message);
+        } catch (JMSException e) {
+            throw JMSExceptionSupport.createRuntimeException(e);
+        }
+        return this;
     }
 
     @Override
-    public JMSProducer send(Destination destination, Map<String, Object> map) {
-        return null;
+    public JMSProducer send(Destination destination, Map<String, Object> body) {
+        MapMessage message = jmsContext.createMapMessage();
+        try {
+            for (Map.Entry<String, Object> entry : body.entrySet()) {
+                message.setObject(entry.getKey(), entry.getValue());
+            }
+            sendMessage(destination, message);
+        } catch (JMSException e) {
+            throw JMSExceptionSupport.createRuntimeException(e);
+        }
+        return this;
     }
 
     @Override
-    public JMSProducer send(Destination destination, byte[] bytes) {
-        return null;
+    public JMSProducer send(Destination destination, byte[] body) {
+        try {
+            BytesMessage message = jmsContext.createBytesMessage();
+            message.writeBytes(body);
+            sendMessage(destination, message);
+        } catch (JMSException e) {
+            throw JMSExceptionSupport.createRuntimeException(e);
+        }
+        return this;
     }
 
     @Override
-    public JMSProducer send(Destination destination, Serializable serializable) {
-        return null;
+    public JMSProducer send(Destination destination, Serializable body) {
+        try {
+            ObjectMessage message = jmsContext.createObjectMessage(body);
+            sendMessage(destination, message);
+        } catch (JMSException e) {
+            throw JMSExceptionSupport.createRuntimeException(e);
+        }
+        return this;
     }
 
     @Override
@@ -97,8 +139,14 @@ public class PulsarJMSProducer implements JMSProducer {
 
     @Override
     public JMSProducer setDeliveryMode(int deliveryMode) {
-        this.deliveryMode = deliveryMode;
-        return this;
+        switch (deliveryMode) {
+            case DeliveryMode.PERSISTENT:
+            case DeliveryMode.NON_PERSISTENT:
+                this.deliveryMode = deliveryMode;
+                return this;
+            default:
+                throw new JMSRuntimeException(String.format("Invalid DeliveryMode specified: %d", deliveryMode));
+        }
     }
 
     @Override
@@ -108,6 +156,10 @@ public class PulsarJMSProducer implements JMSProducer {
 
     @Override
     public JMSProducer setPriority(int priority) {
+        if (priority < 0 || priority > 9) {
+            throw new JMSRuntimeException(String.format("Priority value given {%d} is out of range (0..9)", priority));
+        }
+
         this.priority = priority;
         return this;
     }
@@ -155,7 +207,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Boolean(value));
         } catch (JMSException e) {
-            LOGGER.error("Set boolean exception", e);
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
         return this;
     }
@@ -165,7 +217,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Byte(value));
         } catch (JMSException e) {
-            LOGGER.error("Set byte exception", e);
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
         return this;
     }
@@ -175,7 +227,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Short(value));
         } catch (JMSException e) {
-            LOGGER.error("Set short exception", e);
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
         return this;
     }
@@ -185,7 +237,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Integer(value));
         } catch (JMSException e) {
-            LOGGER.error("Set int exception", e);
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
         return this;
     }
@@ -195,7 +247,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Long(value));
         } catch (JMSException e) {
-            LOGGER.error("Set long exception", e);
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
         return this;
     }
@@ -205,7 +257,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Float(value));
         } catch (JMSException e) {
-            LOGGER.error("Set float exception", e);
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
         return this;
     }
@@ -215,7 +267,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Double(value));
         } catch (JMSException e) {
-            LOGGER.error("Set double exception", e);
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
         return this;
     }
@@ -225,7 +277,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, value);
         } catch (JMSException e) {
-            LOGGER.error("Set String exception", e);
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
         return this;
     }
@@ -235,7 +287,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, value);
         } catch (JMSException e) {
-            LOGGER.error("Set Object exception", e);
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
         return this;
     }
@@ -256,70 +308,63 @@ public class PulsarJMSProducer implements JMSProducer {
     public boolean getBooleanProperty(String name) {
         try {
             return MessageConverterUtils.convertToBoolean(getProperty(name));
-        } catch (MessageFormatException e) {
-            LOGGER.error("getBooleanProperty exception", e);
+        } catch (JMSException e) {
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
-        return false;
     }
 
     @Override
     public byte getByteProperty(String name) {
         try {
             return MessageConverterUtils.convertToByte(getProperty(name));
-        } catch (MessageFormatException e) {
-            LOGGER.error("getByteProperty exception", e);
+        } catch (JMSException e) {
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
-        return 0;
     }
 
     @Override
     public short getShortProperty(String name) {
         try {
             return MessageConverterUtils.convertToShort(getProperty(name));
-        } catch (MessageFormatException e) {
-            LOGGER.error("getShortProperty exception", e);
+        } catch (JMSException e) {
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
-        return 0;
     }
 
     @Override
     public int getIntProperty(String name) {
         try {
             return MessageConverterUtils.convertToInt(getProperty(name));
-        } catch (MessageFormatException e) {
-            LOGGER.error("getIntProperty exception", e);
+        } catch (JMSException e) {
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
-        return 0;
     }
 
     @Override
     public long getLongProperty(String name) {
         try {
             return MessageConverterUtils.convertToLong(getProperty(name));
-        } catch (MessageFormatException e) {
-            LOGGER.error("getLongProperty exception", e);
+        } catch (JMSException e) {
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
-        return 0;
     }
 
     @Override
     public float getFloatProperty(String name) {
         try {
             return MessageConverterUtils.convertToFloat(getProperty(name));
-        } catch (MessageFormatException e) {
-            LOGGER.error("getFloatProperty exception", e);
+        } catch (JMSException e) {
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
-        return 0;
     }
 
     @Override
     public double getDoubleProperty(String name) {
         try {
             return MessageConverterUtils.convertToDouble(getProperty(name));
-        } catch (MessageFormatException e) {
-            LOGGER.error("getDoubleProperty exception", e);
+        } catch (JMSException e) {
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
-        return 0;
     }
 
     @Override
@@ -335,17 +380,17 @@ public class PulsarJMSProducer implements JMSProducer {
 
     @Override
     public Set<String> getPropertyNames() {
-        return this.props.keySet();
+        return new HashSet<String>(this.props.keySet());
     }
 
     @Override
     public JMSProducer setJMSCorrelationIDAsBytes(byte[] correlationId) {
         try {
             this.setCorrelationId(MessageConverterUtils.decodeString(correlationId));
+            return this;
         } catch (JMSException e) {
-            LOGGER.error("setJMSCorrelationIDAsBytes exception", e);
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
-        return this;
     }
 
     @Override
@@ -353,9 +398,8 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             return MessageConverterUtils.encodeString(this.getCorrelationId());
         } catch (JMSException e) {
-            LOGGER.error("getJMSCorrelationIDAsBytes exception", e);
+            throw JMSExceptionSupport.createRuntimeException(e);
         }
-        return new byte[0];
     }
 
     @Override
@@ -370,23 +414,29 @@ public class PulsarJMSProducer implements JMSProducer {
     }
 
     @Override
-    public JMSProducer setJMSType(String s) {
-        return null;
+    public JMSProducer setJMSType(String type) {
+        this.type = type;
+        return this;
     }
 
     @Override
     public String getJMSType() {
-        return null;
+        return type;
     }
 
     @Override
-    public JMSProducer setJMSReplyTo(Destination destination) {
-        return null;
+    public JMSProducer setJMSReplyTo(Destination replyTo) {
+        try {
+            this.replyTo = DestinationUtils.transformDestination(replyTo);
+        } catch (JMSException e) {
+            throw JMSExceptionSupport.createRuntimeException(e);
+        }
+        return this;
     }
 
     @Override
     public Destination getJMSReplyTo() {
-        return null;
+        return replyTo;
     }
 
     private void setPropertyInternal(String name, Object value)
@@ -410,5 +460,59 @@ public class PulsarJMSProducer implements JMSProducer {
 
     public void setCorrelationId(String correlationId) {
         this.correlationId = correlationId;
+    }
+
+    private void sendMessage(Destination destination, Message message) throws JMSException {
+        sendLock.lock();
+        // Send each message and log message content and ID when successfully received
+        MessageId msgId = null;
+        try {
+            if (destination == null) {
+                throw new InvalidDestinationException("Destination must not be null");
+            }
+
+            if (message == null) {
+                throw new MessageFormatException("Message must not be null");
+            }
+
+            for (Map.Entry<String, Object> entry : props.entrySet()) {
+                message.setObjectProperty(entry.getKey(), entry.getValue());
+            }
+
+            if (correlationId != null) {
+                message.setJMSCorrelationID(correlationId);
+            }
+            if (correlationIdBytes != null) {
+                message.setJMSCorrelationIDAsBytes(correlationIdBytes);
+            }
+            if (type != null) {
+                message.setJMSType(type);
+            }
+            if (replyTo != null) {
+                message.setJMSReplyTo(replyTo);
+            }
+
+            message.setJMSDestination(DestinationUtils.transformDestination(destination));
+            message.setJMSTimestamp((new Date()).getTime());
+            message.setJMSPriority(priority);
+
+            if (timeToLive > 0) {
+                message.setJMSExpiration(System.currentTimeMillis() + timeToLive);
+            } else {
+                message.setJMSExpiration(0);
+            }
+
+            Message transformedMessage = MessageUtils.transformMessage(message);
+            if (transformedMessage != null) {
+                message = transformedMessage;
+            }
+            msgId = producer.send(new ObjectSerializer().objectToByteArray(message));
+            message.setJMSMessageID(msgId.toString());
+        } catch (PulsarClientException e) {
+            LOGGER.error("PulsarClientException during send : ", e);
+        } finally {
+            sendLock.unlock();
+        }
+        LOGGER.info("Published msg='{}' with msg-id={}", message.getBody(message.getJMSType().getClass()), msgId);
     }
 }

@@ -10,17 +10,11 @@ public class PulsarQueue implements Queue, PulsarDestination {
         this.queueName = queueName;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.Queue#getQueueName()
-     */
     @Override
     public String getQueueName() throws JMSException {
         return queueName;
     }
 
-    /* (non-Javadoc)
-     * @see PulsarDestination#getName()
-     */
     @Override
     public String getName() throws JMSException {
         return getQueueName();

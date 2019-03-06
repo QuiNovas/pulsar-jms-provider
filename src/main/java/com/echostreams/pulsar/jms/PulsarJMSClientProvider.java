@@ -11,33 +11,35 @@ import javax.jms.*;
 public class PulsarJMSClientProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarJMSClientProvider.class);
 
-    private ConnectionFactory factory = new PulsarConnectionFactory("pulsar://192.168.43.88:6650");
+    private String serviceUrl = "pulsar://172.16.30.107:6650";
+    private ConnectionFactory factory = new PulsarConnectionFactory(serviceUrl);
     private Connection con;
     private Session session;
     private Destination topic;
 
     // Queue Test
-    private QueueConnectionFactory qfactory = new PulsarConnectionFactory("pulsar://192.168.43.88:6650");
+    private QueueConnectionFactory qfactory = new PulsarConnectionFactory(serviceUrl);
     private QueueConnection qcon;
     private QueueSession qsession;
     private Queue queue;
 
     // Topic Test
-    private TopicConnectionFactory tfactory = new PulsarConnectionFactory("pulsar://192.168.43.88:6650");
+    private TopicConnectionFactory tfactory = new PulsarConnectionFactory(serviceUrl);
     private TopicConnection tcon;
     private TopicSession tsession;
     private Topic tp;
 
     // Jms 2.0
-    private ConnectionFactory cfactory = new PulsarConnectionFactory("pulsar://192.168.43.88:6650");
+    private ConnectionFactory cfactory = new PulsarConnectionFactory(serviceUrl);
     private JMSContext jmsContext;
+    private Destination ctopic;
 
     private final ProducerConfigurationData conf = new ProducerConfigurationData();
 
     public static void main(String[] args) throws JMSException {
         PulsarJMSClientProvider pulsarJMSClientProvider = new PulsarJMSClientProvider();
         pulsarJMSClientProvider.executeProducerTest();
-        //pulsarJMSClientProvider.executeProducerByteTest();
+        pulsarJMSClientProvider.executeProducerByteTest();
         pulsarJMSClientProvider.executeConsumerTest();
 
         // Queue
@@ -49,6 +51,34 @@ public class PulsarJMSClientProvider {
         pulsarJMSClientProvider.executeTopicSubscriberTest();
 
         //JMS2-JMSContext
+        pulsarJMSClientProvider.executeJms2ProducerTest();
+        pulsarJMSClientProvider.executeJms2ConsumerTest();
+
+    }
+
+    private void executeJms2ProducerTest() {
+        try {
+            jmsContext = cfactory.createContext();
+            ctopic = jmsContext.createTopic("test");
+
+            jmsContext.createProducer().send(ctopic, "Hello JMS 2");
+        } catch (JMSRuntimeException e) {
+            LOGGER.error("JMSRuntimeException", e);
+        }
+
+    }
+
+    private void executeJms2ConsumerTest() throws JMSException {
+        try {
+            jmsContext = cfactory.createContext();
+            ctopic = jmsContext.createTopic("test");
+            JMSConsumer consumer = jmsContext.createConsumer(ctopic);
+            consumer.receive();
+            jmsContext.unsubscribe(((PulsarDestination) ctopic).getName());
+            consumer.close();
+        } catch (JMSRuntimeException e) {
+            LOGGER.error("JMSRuntimeException", e);
+        }
 
     }
 
@@ -98,8 +128,8 @@ public class PulsarJMSClientProvider {
         queue = qsession.createQueue("test");
 
         QueueReceiver qr = qsession.createReceiver(queue);
-        TextMessage tm = (TextMessage)qr.receiveNoWait();
-        if(tm != null) {
+        TextMessage tm = (TextMessage) qr.receiveNoWait();
+        if (tm != null) {
             LOGGER.info("got text message: " + tm.getText());
             LOGGER.info("string property: " + tm.getStringProperty("string"));
             LOGGER.info("int property: " + tm.getIntProperty("int"));
@@ -151,7 +181,8 @@ public class PulsarJMSClientProvider {
         tp = tsession.createTopic("test");
 
         TopicPublisher pub = tsession.createPublisher(tp);
-        ObjectMessage om = tsession.createObjectMessage(new Integer(99));
+        TextMessage om = tsession.createTextMessage("Hello Topic");
+        //ObjectMessage om = tsession.createObjectMessage(new Integer(99));
         pub.publish(om);
         pub.close();
         tsession.close();

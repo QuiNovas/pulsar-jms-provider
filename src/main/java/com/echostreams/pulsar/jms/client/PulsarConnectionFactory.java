@@ -4,7 +4,7 @@ import com.echostreams.pulsar.jms.auth.AthenzAuthParams;
 import com.echostreams.pulsar.jms.auth.TLSAuthParams;
 import com.echostreams.pulsar.jms.config.PulsarConfigBuilder;
 import com.echostreams.pulsar.jms.utils.ObjectSerializer;
-import com.echostreams.pulsar.jms.utils.PulsarJMSException;
+import com.echostreams.pulsar.jms.exceptions.PulsarJMSException;
 import com.echostreams.pulsar.jms.utils.StringDeserializer;
 import com.echostreams.pulsar.jms.utils.StringSerializer;
 import org.apache.pulsar.client.api.Authentication;
@@ -64,11 +64,6 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         // builder.groupId(value);
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.ConnectionFactory#createConnection()
-     */
     @Override
     /*public Connection createConnection() throws JMSException {
         config = builder.build();
@@ -78,45 +73,22 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         return createConnection(null, null);
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.ConnectionFactory#createConnection(java.lang.String,
-     * java.lang.String)
-     */
     @Override
     public Connection createConnection(String userName, String password)
             throws JMSException {
         return createPulsarConnection(userName, password);
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.ConnectionFactory#createContext()
-     */
     @Override
     public JMSContext createContext() {
         return createContext(null, null, JMSContext.AUTO_ACKNOWLEDGE);
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.ConnectionFactory#createContext(java.lang.String,
-     * java.lang.String)
-     */
     @Override
     public JMSContext createContext(String userName, String password) {
         return createContext(userName, password, JMSContext.AUTO_ACKNOWLEDGE);
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.ConnectionFactory#createContext(java.lang.String,
-     * java.lang.String, int)
-     */
     @Override
     public JMSContext createContext(String userName, String password,
                                     int sessionMode) {
@@ -129,11 +101,6 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         return jmsContext;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.ConnectionFactory#createContext(int)
-     */
     @Override
     public JMSContext createContext(int sessionMode) {
         return createContext(null, null, sessionMode);

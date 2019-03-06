@@ -16,25 +16,16 @@ public class PulsarObjectMessage extends PulsarMessage implements ObjectMessage 
         setJMSType(PulsarConfig.OBJECT_MESSAGE);
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.Message#clearBody()
-     */
     @Override
     public void clearBody() throws JMSException {
         payload = null;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.Message#getBody(java.lang.Class)
-     */
     @Override
     public <T> T getBody(Class<T> c) throws JMSException {
         return (T) payload;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.ObjectMessage#setObject(java.io.Serializable)
-     */
     @Override
     public void setObject(Serializable object) throws JMSException {
         checkWriteMode();
@@ -44,9 +35,6 @@ public class PulsarObjectMessage extends PulsarMessage implements ObjectMessage 
         this.payload = object;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.ObjectMessage#getObject()
-     */
     @Override
     public Serializable getObject() throws JMSException {
         return this.payload;

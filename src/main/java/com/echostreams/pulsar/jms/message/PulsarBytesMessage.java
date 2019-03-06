@@ -24,9 +24,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         setJMSType(PulsarConfig.BYTES_MESSAGE);
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.Message#clearBody()
-     */
     @Override
     public void clearBody() throws JMSException {
         try {
@@ -53,26 +50,34 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
 
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.Message#getBody(java.lang.Class)
-     */
     @Override
     public <T> T getBody(Class<T> c) throws JMSException {
-        return (T) this.payload;
+
+        return (T) payload ;
+/*        //message is in write-only mode
+        if (!this.readOnlyBody) {
+            //flush the outer DataOutputStream...
+            try {
+                output.flush();
+            } catch (IOException e) {
+                throw new JMSException(e.getMessage());
+            }
+            //and return the underlying stream content
+            return (T) byteOutput.toByteArray();
+        }
+        //message is in read-only mode
+        else {
+            //return the complete content of the message
+            return (T) this.payload;
+        }*/
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#getBodyLength()
-     */
     @Override
     public long getBodyLength() throws JMSException {
         checkReadMode();
         return payload != null ? payload.length : 0;
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#readBoolean()
-     */
     @Override
     public boolean readBoolean() throws JMSException {
         checkReadMode();
@@ -85,9 +90,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#readByte()
-     */
     @Override
     public byte readByte() throws JMSException {
         checkReadMode();
@@ -100,9 +102,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#readUnsignedByte()
-     */
     @Override
     public int readUnsignedByte() throws JMSException {
         checkReadMode();
@@ -115,9 +114,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#readShort()
-     */
     @Override
     public short readShort() throws JMSException {
         checkReadMode();
@@ -130,9 +126,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#readUnsignedShort()
-     */
     @Override
     public int readUnsignedShort() throws JMSException {
         checkReadMode();
@@ -145,9 +138,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#readChar()
-     */
     @Override
     public char readChar() throws JMSException {
         checkReadMode();
@@ -160,9 +150,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#readInt()
-     */
     @Override
     public int readInt() throws JMSException {
         checkReadMode();
@@ -175,9 +162,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#readLong()
-     */
     @Override
     public long readLong() throws JMSException {
         checkReadMode();
@@ -190,9 +174,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#readFloat()
-     */
     @Override
     public float readFloat() throws JMSException {
         checkReadMode();
@@ -205,9 +186,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#readDouble()
-     */
     @Override
     public double readDouble() throws JMSException {
         checkReadMode();
@@ -220,9 +198,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#readUTF()
-     */
     @Override
     public String readUTF() throws JMSException {
         checkReadMode();
@@ -235,9 +210,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#readBytes(byte[])
-     */
     @Override
     public int readBytes(byte[] value) throws JMSException {
         checkReadMode();
@@ -250,9 +222,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#readBytes(byte[], int)
-     */
     @Override
     public int readBytes(byte[] value, int length) throws JMSException {
         checkReadMode();
@@ -265,9 +234,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#writeBoolean(boolean)
-     */
     @Override
     public void writeBoolean(boolean value) throws JMSException {
         checkWriteMode();
@@ -278,9 +244,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#writeByte(byte)
-     */
     @Override
     public void writeByte(byte value) throws JMSException {
         checkWriteMode();
@@ -292,9 +255,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
 
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#writeShort(short)
-     */
     @Override
     public void writeShort(short value) throws JMSException {
         checkWriteMode();
@@ -305,9 +265,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#writeChar(char)
-     */
     @Override
     public void writeChar(char value) throws JMSException {
         checkWriteMode();
@@ -319,9 +276,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
 
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#writeInt(int)
-     */
     @Override
     public void writeInt(int value) throws JMSException {
         checkWriteMode();
@@ -333,9 +287,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
 
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#writeLong(long)
-     */
     @Override
     public void writeLong(long value) throws JMSException {
         checkWriteMode();
@@ -346,9 +297,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#writeFloat(float)
-     */
     @Override
     public void writeFloat(float value) throws JMSException {
         checkWriteMode();
@@ -359,9 +307,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#writeDouble(double)
-     */
     @Override
     public void writeDouble(double value) throws JMSException {
         checkWriteMode();
@@ -372,9 +317,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#writeUTF(java.lang.String)
-     */
     @Override
     public void writeUTF(String value) throws JMSException {
         checkWriteMode();
@@ -385,9 +327,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#writeBytes(byte[])
-     */
     @Override
     public void writeBytes(byte[] value) throws JMSException {
         checkWriteMode();
@@ -399,9 +338,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#writeBytes(byte[], int, int)
-     */
     @Override
     public void writeBytes(byte[] value, int offset, int length)
             throws JMSException {
@@ -413,9 +349,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#writeObject(java.lang.Object)
-     */
     @Override
     public void writeObject(Object value) throws JMSException {
         checkWriteMode();
@@ -448,9 +381,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
     }
 
-    /* (non-Javadoc)
-     * @see javax.jms.BytesMessage#reset()
-     */
     @Override
     public void reset() throws JMSException {
         //in write-only mode
@@ -514,7 +444,7 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
             byteOutput = new ByteArrayOutputStream(1024);
             output = new DataOutputStream(byteOutput);
         }
-
+        payload = byteOutput.toByteArray();
         return output;
     }
 

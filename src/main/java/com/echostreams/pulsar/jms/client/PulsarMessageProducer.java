@@ -14,22 +14,33 @@ import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 import java.util.Date;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class PulsarMessageProducer implements MessageProducer, QueueSender, TopicPublisher {
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarMessageProducer.class);
-    private static final int DEFAULT_PRIORITY = 4;
-    private static final int DEFAULT_DELIERY_MODE = DeliveryMode.PERSISTENT;
-    private static final int DEFAULT_TTL = 60000;
 
+    private CompletionListener completionListener;
+    private PulsarJMSContext jmsContext;
     private Producer<byte[]> producer;
     private PulsarDestination destination;
+    private PulsarSession session;
+
+    // Producer send configuration
+    private long deliveryDelay = Message.DEFAULT_DELIVERY_DELAY;
+    private int deliveryMode = DeliveryMode.PERSISTENT;
+    private int priority = Message.DEFAULT_PRIORITY;
+    private long timeToLive = Message.DEFAULT_TIME_TO_LIVE;
     private boolean disbledMessageId;
     private boolean disableMessageTimestamp;
-    private int deliveryMode = DEFAULT_DELIERY_MODE;
-    private int priority = DEFAULT_PRIORITY;
-    private long timeToLive = DEFAULT_TTL;
-    private long deliveryDelay;
-    private PulsarSession session;
+
+    // Message Headers
+    private String correlationId;
+    private String type;
+    private Destination replyTo;
+    private byte[] correlationIdBytes;
+
+
+    private final ReentrantLock sendLock = new ReentrantLock();
 
 
     /**
@@ -43,143 +54,82 @@ public class PulsarMessageProducer implements MessageProducer, QueueSender, Topi
         this.producer = new ProducerBuilderImpl((PulsarClientImpl) session.getConnection().getClient(), Schema.BYTES).topic(((PulsarDestination) destination).getName()).create();
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#setDisableMessageID(boolean)
-     */
     @Override
     public void setDisableMessageID(boolean value) throws JMSException {
         this.disbledMessageId = value;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#getDisableMessageID()
-     */
     @Override
     public boolean getDisableMessageID() throws JMSException {
         return this.disbledMessageId;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#setDisableMessageTimestamp(boolean)
-     */
     @Override
     public void setDisableMessageTimestamp(boolean value) throws JMSException {
         this.disableMessageTimestamp = value;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#getDisableMessageTimestamp()
-     */
     @Override
     public boolean getDisableMessageTimestamp() throws JMSException {
         return this.disableMessageTimestamp;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#setDeliveryMode(int)
-     */
     @Override
     public void setDeliveryMode(int deliveryMode) throws JMSException {
-        this.deliveryMode = deliveryMode;
+        switch (deliveryMode) {
+            case DeliveryMode.PERSISTENT:
+            case DeliveryMode.NON_PERSISTENT:
+                this.deliveryMode = deliveryMode;
+                break;
+            default:
+                throw new JMSException(String.format("Invalid DeliveryMode specified: %d", deliveryMode));
+        }
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#getDeliveryMode()
-     */
     @Override
     public int getDeliveryMode() throws JMSException {
         return deliveryMode;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#setPriority(int)
-     */
     @Override
     public void setPriority(int defaultPriority) throws JMSException {
+        if (defaultPriority < 0 || defaultPriority > 9) {
+            throw new JMSException(String.format("Priority value given {%d} is out of range (0..9)", defaultPriority));
+        }
+
         this.priority = defaultPriority;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#getPriority()
-     */
     @Override
     public int getPriority() throws JMSException {
-        // TODO Auto-generated method stub
         return priority;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#setTimeToLive(long)
-     */
     @Override
     public void setTimeToLive(long timeToLive) throws JMSException {
         this.timeToLive = timeToLive;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#getTimeToLive()
-     */
     @Override
     public long getTimeToLive() throws JMSException {
-        // producer.metrics().get(ProducerConfig.METADATA_MAX_AGE_CONFIG);
         return this.timeToLive;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#setDeliveryDelay(long)
-     */
     @Override
     public void setDeliveryDelay(long deliveryDelay) throws JMSException {
         this.deliveryDelay = deliveryDelay;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#getDeliveryDelay()
-     */
     @Override
     public long getDeliveryDelay() throws JMSException {
         return this.deliveryDelay;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#getDestination()
-     */
     @Override
     public Destination getDestination() throws JMSException {
         return destination;
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#close()
-     */
     @Override
     public void close() {
         try {
@@ -191,24 +141,14 @@ public class PulsarMessageProducer implements MessageProducer, QueueSender, Topi
 
     @Override
     public Queue getQueue() throws JMSException {
-        return null;
+        return (Queue) destination;
     }
 
-    /*
-         * (non-Javadoc)
-         *
-         * @see javax.jms.MessageProducer#send(javax.jms.Message)
-         */
     @Override
     public void send(Message message) throws JMSException {
         send(destination, message, deliveryMode, priority, timeToLive);
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see javax.jms.MessageProducer#send(javax.jms.Message, int, int, long)
-     */
     @Override
     public void send(Message message, int deliveryMode, int priority,
                      long timeToLive) throws JMSException {
@@ -235,34 +175,7 @@ public class PulsarMessageProducer implements MessageProducer, QueueSender, Topi
     public void send(Destination destination, Message message,
                      int deliveryMode, int priority, long timeToLive)
             throws JMSException {
-        // Send each message and log message content and ID when successfully received
-        MessageId msgId = null;
-        try {
-            if (message == null) {
-                throw new MessageFormatException("Null message");
-            }
-
-            message.setJMSReplyTo(DestinationUtils.transformDestination(destination));
-            message.setJMSDestination(DestinationUtils.transformDestination(destination));
-            message.setJMSTimestamp((new Date()).getTime());
-            message.setJMSPriority(priority);
-
-            if (timeToLive > 0) {
-                message.setJMSExpiration(System.currentTimeMillis() + timeToLive);
-            } else {
-                message.setJMSExpiration(0);
-            }
-
-            Message transformedMessage = MessageUtils.transformMessage(message);
-            if (transformedMessage != null) {
-                message = transformedMessage;
-            }
-            msgId = producer.send(new ObjectSerializer().objectToByteArray(message));
-            message.setJMSMessageID(msgId.toString());
-        } catch (PulsarClientException e) {
-            LOGGER.error("PulsarClientException during send : ", e);
-        }
-        LOGGER.info("Published msg='{}' with msg-id={}", message.getBody(message.getJMSType().getClass()), msgId);
+        sendMessage(destination, message, deliveryMode, priority, timeToLive, null);
     }
 
     @Override
@@ -293,42 +206,12 @@ public class PulsarMessageProducer implements MessageProducer, QueueSender, Topi
                      int deliveryMode, int priority, long timeToLive,
                      CompletionListener completionListener) throws JMSException {
 
-        if (completionListener == null) {
-            throw new IllegalArgumentException("CompletetionListener cannot be null");
-        }
-        // Send each message and log message content and ID when successfully received
-        MessageId msgId = null;
-        try {
-            if (message == null) {
-                throw new MessageFormatException("Null message");
-            }
-
-            message.setJMSReplyTo(DestinationUtils.transformDestination(destination));
-            message.setJMSDestination(DestinationUtils.transformDestination(destination));
-            message.setJMSTimestamp((new Date()).getTime());
-            message.setJMSPriority(priority);
-
-            if (timeToLive > 0) {
-                message.setJMSExpiration(System.currentTimeMillis() + timeToLive);
-            } else {
-                message.setJMSExpiration(0);
-            }
-
-            Message transformedMessage = MessageUtils.transformMessage(message);
-            if (transformedMessage != null) {
-                message = transformedMessage;
-            }
-            msgId = producer.send(new ObjectSerializer().objectToByteArray(message));
-            message.setJMSMessageID(msgId.toString());
-        } catch (PulsarClientException e) {
-            LOGGER.error("PulsarClientException during send : ", e);
-        }
-        LOGGER.info("Published msg='{}' with msg-id={}", message.getBody(message.getJMSType().getClass()), msgId);
+        sendMessage(destination, message, deliveryMode, priority, timeToLive, completionListener);
     }
 
     @Override
     public Topic getTopic() throws JMSException {
-        return null;
+        return (Topic) destination;
     }
 
     @Override
@@ -349,5 +232,56 @@ public class PulsarMessageProducer implements MessageProducer, QueueSender, Topi
     @Override
     public void publish(Topic topic, Message message, int deliveryMode, int priority, long timeToLive) throws JMSException {
         this.send((Destination) topic, message, deliveryMode, priority, timeToLive);
+    }
+
+    private void sendMessage(Destination destination, Message message, int deliveryMode, int priority, long timeToLive,
+                             CompletionListener completionListener) throws JMSException {
+        sendLock.lock();
+        // Send each message and log message content and ID when successfully received
+        MessageId msgId = null;
+        try {
+            if (destination == null) {
+                throw new InvalidDestinationException("Destination must not be null");
+            }
+
+            if (message == null) {
+                throw new MessageFormatException("Message must not be null");
+            }
+
+            if (correlationId != null) {
+                message.setJMSCorrelationID(correlationId);
+            }
+            if (correlationIdBytes != null) {
+                message.setJMSCorrelationIDAsBytes(correlationIdBytes);
+            }
+            if (type != null) {
+                message.setJMSType(type);
+            }
+            if (replyTo != null) {
+                message.setJMSReplyTo(replyTo);
+            }
+
+            message.setJMSDestination(DestinationUtils.transformDestination(destination));
+            message.setJMSTimestamp((new Date()).getTime());
+            message.setJMSPriority(priority);
+
+            if (timeToLive > 0) {
+                message.setJMSExpiration(System.currentTimeMillis() + timeToLive);
+            } else {
+                message.setJMSExpiration(0);
+            }
+
+            Message transformedMessage = MessageUtils.transformMessage(message);
+            if (transformedMessage != null) {
+                message = transformedMessage;
+            }
+            msgId = producer.send(new ObjectSerializer().objectToByteArray(message));
+            message.setJMSMessageID(msgId.toString());
+        } catch (PulsarClientException e) {
+            LOGGER.error("PulsarClientException during send : ", e);
+        } finally {
+            sendLock.unlock();
+        }
+        LOGGER.info("Published msg='{}' with msg-id={}", message.getBody(message.getJMSType().getClass()), msgId);
     }
 }

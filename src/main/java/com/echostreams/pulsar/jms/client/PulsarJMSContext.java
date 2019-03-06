@@ -3,6 +3,7 @@ package com.echostreams.pulsar.jms.client;
 import com.echostreams.pulsar.jms.common.PulsarConnectionMetaDataImpl;
 import com.echostreams.pulsar.jms.message.*;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.api.PulsarClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +19,7 @@ public class PulsarJMSContext implements JMSContext {
     private PulsarJMSConsumer consumer;
     private MessageListener listener;
     private PulsarClient client;
+    private Destination destination;
 
     public PulsarJMSContext(PulsarClient client) throws JMSException {
         this.client = client;
@@ -30,11 +32,13 @@ public class PulsarJMSContext implements JMSContext {
 
     @Override
     public JMSProducer createProducer() {
-        /*try {
-            producer = new PulsarJMSProducer(destination, this);
+        try {
+            producer = new PulsarJMSProducer(this);
         } catch (PulsarClientException e) {
-            LOGGER.error("Pulsar createProducer exception", e);
-        }*/
+            LOGGER.error("Pulsar createProducer PulsarClientException ", e);
+        } catch (JMSException e) {
+            LOGGER.error("Pulsar createProducer JMSException ", e);
+        }
         return producer;
     }
 
@@ -224,12 +228,16 @@ public class PulsarJMSContext implements JMSContext {
 
     @Override
     public Queue createQueue(String queueName) {
-        return new PulsarQueue(queueName);
+        PulsarQueue pulsarQueue = new PulsarQueue(queueName);
+        this.destination = pulsarQueue;
+        return pulsarQueue;
     }
 
     @Override
     public Topic createTopic(String topicName) {
-        return new PulsarTopic(topicName);
+        PulsarTopic pulsarTopic = new PulsarTopic(topicName);
+        this.destination = pulsarTopic;
+        return pulsarTopic;
     }
 
     @Override
@@ -297,5 +305,9 @@ public class PulsarJMSContext implements JMSContext {
 
     public PulsarClient getClient() {
         return client;
+    }
+
+    public Destination getDestination() {
+        return destination;
     }
 }

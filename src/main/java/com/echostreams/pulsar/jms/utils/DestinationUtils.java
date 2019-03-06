@@ -11,7 +11,6 @@ import javax.jms.Topic;
 public class DestinationUtils {
 
     public static PulsarDestination transformDestination(Destination destination) throws JMSException {
-
         if (destination == null) {
             return null;
         }
