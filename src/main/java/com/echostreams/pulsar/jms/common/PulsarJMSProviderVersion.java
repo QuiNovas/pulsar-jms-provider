@@ -1,6 +1,5 @@
 package com.echostreams.pulsar.jms.common;
 
-import com.echostreams.pulsar.jms.utils.PropertiesUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +25,7 @@ public class PulsarJMSProviderVersion {
 
     static {
         try {
-            InputStream in = PropertiesUtils.class.getResourceAsStream("/PulsarJMSProvider.version");
+            InputStream in = PulsarJMSProviderVersion.class.getResourceAsStream("/PulsarJMSProvider.version");
             if (in != null) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(in));
                 String versionString = reader.readLine();

@@ -1,6 +1,6 @@
 package com.echostreams.pulsar.jms.message;
 
-import com.echostreams.pulsar.jms.config.PulsarConfig;
+import com.echostreams.pulsar.jms.config.PulsarConstants;
 
 import javax.jms.JMSException;
 import javax.jms.TextMessage;
@@ -13,7 +13,7 @@ public class PulsarTextMessage extends PulsarMessage implements TextMessage {
     public PulsarTextMessage() throws JMSException {
         headers = new HashMap<>();
         headers.put(PROPERTIES, new HashMap<String, Serializable>());
-        setJMSType(PulsarConfig.TEXT_MESSAGE);
+        setJMSType(PulsarConstants.TEXT_MESSAGE);
     }
 
     @Override

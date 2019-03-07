@@ -1,6 +1,6 @@
 package com.echostreams.pulsar.jms.message;
 
-import com.echostreams.pulsar.jms.config.PulsarConfig;
+import com.echostreams.pulsar.jms.config.PulsarConstants;
 import com.echostreams.pulsar.jms.utils.CommonUtils;
 import com.echostreams.pulsar.jms.utils.MessageConverterUtils;
 import com.echostreams.pulsar.jms.utils.MessageUtils;
@@ -9,6 +9,7 @@ import javax.jms.*;
 import java.io.ByteArrayInputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class PulsarStreamMessage extends PulsarMessage implements StreamMessage {
@@ -38,7 +39,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
     public PulsarStreamMessage() throws JMSException {
         headers = new HashMap<>();
         headers.put(PROPERTIES, new HashMap<String, Serializable>());
-        setJMSType(PulsarConfig.STREAM_MESSAGE);
+        setJMSType(PulsarConstants.STREAM_MESSAGE);
         setToWriteOnlyMode();
     }
 
@@ -248,4 +249,13 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
         this.body.add(value);
     }
 
+    @Override
+    public String toString() {
+        return "PulsarStreamMessage{" +
+                "payload=" + Arrays.toString(payload) +
+                ", body=" + body +
+                ", pos=" + pos +
+                ", byteStream=" + byteStream +
+                '}';
+    }
 }

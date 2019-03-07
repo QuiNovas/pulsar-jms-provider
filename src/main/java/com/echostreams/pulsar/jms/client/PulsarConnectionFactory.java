@@ -1,12 +1,7 @@
 package com.echostreams.pulsar.jms.client;
 
-import com.echostreams.pulsar.jms.auth.AthenzAuthParams;
-import com.echostreams.pulsar.jms.auth.TLSAuthParams;
-import com.echostreams.pulsar.jms.config.PulsarConfigBuilder;
-import com.echostreams.pulsar.jms.utils.ObjectSerializer;
+import com.echostreams.pulsar.jms.config.PulsarConfig;
 import com.echostreams.pulsar.jms.exceptions.PulsarJMSException;
-import com.echostreams.pulsar.jms.utils.StringDeserializer;
-import com.echostreams.pulsar.jms.utils.StringSerializer;
 import org.apache.pulsar.client.api.Authentication;
 import org.apache.pulsar.client.api.AuthenticationFactory;
 import org.apache.pulsar.client.api.PulsarClient;
@@ -16,25 +11,15 @@ import org.apache.pulsar.client.impl.auth.AuthenticationTls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
 import javax.jms.*;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 public class PulsarConnectionFactory implements ConnectionFactory, QueueConnectionFactory, TopicConnectionFactory, Serializable {
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarConnectionFactory.class);
 
-    private static final String DEFAULT_AUTO_COMMIT_INTERVAL = "10000";
-    private static final String DEFAULT_ASSIGNMENT_STRATEGY = "range";
-    private static final String DEFAULT_AUTO_COMMIT = "false";
-    private static final String DEFAULT_TIMOUT = "1000";
     private static String DEFAULT_BROKER = "pulsar://192.168.43.88:6650";
-    private static String DEFAULT_VALUE_SERIALIZER = ObjectSerializer.class.getName();
-    private static String DEFAULT_KEY_SERIALIZER = StringSerializer.class.getName();
-    private static String DEFAULT_KEY_DESERIALIZER = StringDeserializer.class.getName();
-    private PulsarConfigBuilder builder = new PulsarConfigBuilder();
 
     public PulsarConnectionFactory() {
     }
@@ -43,32 +28,6 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         this.DEFAULT_BROKER = brokerUrl;
     }
 
-    /**
-     * @return the builder
-     */
-    public PulsarConfigBuilder getBuilder() {
-        return builder;
-    }
-
-    private Properties config;
-
-    @PostConstruct
-    public void initializeConfig() {
-        /*builder.broker(DEFAULT_BROKER).valueSerializerClass(DEFAULT_VALUE_SERIALIZER)
-                .keySerializerClass(DEFAULT_KEY_SERIALIZER).enableAuutoCommit(DEFAULT_AUTO_COMMIT)
-                .autoCommitInterval(DEFAULT_AUTO_COMMIT_INTERVAL).keyDeserializerClass(DEFAULT_KEY_DESERIALIZER);
-*/
-    }
-
-    public void setGroupId(String value) {
-        // builder.groupId(value);
-    }
-
-    @Override
-    /*public Connection createConnection() throws JMSException {
-        config = builder.build();
-		return new PulsarConnection(config);
-	}*/
     public Connection createConnection() throws JMSException {
         return createConnection(null, null);
     }
@@ -146,11 +105,11 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         return new PulsarJMSContext(client);
     }
 
-    public static PulsarClient tlsAuthentication(TLSAuthParams tlsAuthParams) {
+    public static PulsarClient tlsAuthentication() {
 
         Map<String, String> authParams = new HashMap<>();
-        authParams.put("tlsCertFile", tlsAuthParams.getTlsCertFile());
-        authParams.put("tlsKeyFile", tlsAuthParams.getTlsKeyFile());
+        authParams.put("tlsCertFile", PulsarConfig.TLS_CERT_FILE);
+        authParams.put("tlsKeyFile", PulsarConfig.TLS_KEY_FILE);
 
         Authentication tlsAuth;
         PulsarClient client = null;
@@ -159,9 +118,9 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
                     .create(AuthenticationTls.class.getName(), authParams);
 
             client = PulsarClient.builder()
-                    .serviceUrl(tlsAuthParams.getServiceUrl())
+                    .serviceUrl(PulsarConfig.SERVICE_URL)
                     .enableTls(true)
-                    .tlsTrustCertsFilePath(tlsAuthParams.getTlsTrustCertsFilePath())
+                    .tlsTrustCertsFilePath(PulsarConfig.TLS_TRUST_CERTS_FILEPATH)
                     .authentication(tlsAuth)
                     .build();
 
@@ -172,13 +131,13 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         return client;
     }
 
-    public static PulsarClient athenzAuthentication(AthenzAuthParams athenzAuthParams) {
+    public static PulsarClient athenzAuthentication() {
         Map<String, String> authParams = new HashMap<>();
-        authParams.put("tenantDomain", athenzAuthParams.getTenantDomain()); // Tenant domain name
-        authParams.put("tenantService", athenzAuthParams.getTenantService()); // Tenant service name
-        authParams.put("providerDomain", athenzAuthParams.getProviderDomain()); // Provider domain name
-        authParams.put("privateKey", athenzAuthParams.getPrivateKey()); // Tenant private key path
-        authParams.put("keyId", athenzAuthParams.getKeyId()); // Key id for the tenant private key (optional, default: "0")
+        authParams.put("tenantDomain", PulsarConfig.ATHENZ_TENANT_DOMAIN); // Tenant domain name
+        authParams.put("tenantService", PulsarConfig.ATHENZ_TENANT_SERVICE); // Tenant service name
+        authParams.put("providerDomain", PulsarConfig.ATHENZ_PROVIDER_DOMAIN); // Provider domain name
+        authParams.put("privateKey", PulsarConfig.ATHENZ_PRIVATE_KEY); // Tenant private key path
+        authParams.put("keyId", PulsarConfig.ATHENZ_KEY_ID); // Key id for the tenant private key (optional, default: "0")
 
         Authentication athenzAuth;
         PulsarClient client = null;
@@ -187,9 +146,9 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
                     .create(AuthenticationAthenz.class.getName(), authParams);
 
             client = PulsarClient.builder()
-                    .serviceUrl(athenzAuthParams.getServiceUrl())
+                    .serviceUrl(PulsarConfig.SERVICE_URL)
                     .enableTls(true)
-                    .tlsTrustCertsFilePath(athenzAuthParams.getTlsTrustCertsFilePath())
+                    .tlsTrustCertsFilePath(PulsarConfig.TLS_TRUST_CERTS_FILEPATH)
                     .authentication(athenzAuth)
                     .build();
         } catch (PulsarClientException e) {

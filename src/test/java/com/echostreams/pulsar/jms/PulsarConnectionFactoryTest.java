@@ -9,6 +9,7 @@ import org.junit.Test;
 import javax.jms.*;
 
 public class PulsarConnectionFactoryTest {
+    private String serviceUrl = "pulsar://172.16.30.107:6650";
     private ConnectionFactory factory;
     private Connection con;
     private Session session;

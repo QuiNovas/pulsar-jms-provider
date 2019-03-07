@@ -1,9 +1,9 @@
 package com.echostreams.pulsar.jms.message;
 
-import com.echostreams.pulsar.jms.config.PulsarConfig;
+import com.echostreams.pulsar.jms.config.PulsarConstants;
+import com.echostreams.pulsar.jms.exceptions.PulsarJMSException;
 import com.echostreams.pulsar.jms.utils.CommonUtils;
 import com.echostreams.pulsar.jms.utils.MessageConverterUtils;
-import com.echostreams.pulsar.jms.exceptions.PulsarJMSException;
 
 import javax.jms.JMSException;
 import javax.jms.MapMessage;
@@ -20,7 +20,7 @@ public class PulsarMapMessage extends PulsarMessage implements MapMessage {
     public PulsarMapMessage() throws JMSException {
         headers = new HashMap<>();
         headers.put(PROPERTIES, new HashMap<String, Serializable>());
-        setJMSType(PulsarConfig.MAP_MESSAGE);
+        setJMSType(PulsarConstants.MAP_MESSAGE);
     }
 
     @Override
@@ -198,4 +198,10 @@ public class PulsarMapMessage extends PulsarMessage implements MapMessage {
         return payload.put(name, value);
     }
 
+    @Override
+    public String toString() {
+        return "PulsarMapMessage{" +
+                "payload=" + payload +
+                '}';
+    }
 }

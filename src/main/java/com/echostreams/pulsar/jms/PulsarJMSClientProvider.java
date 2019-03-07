@@ -2,6 +2,7 @@ package com.echostreams.pulsar.jms;
 
 import com.echostreams.pulsar.jms.client.PulsarConnectionFactory;
 import com.echostreams.pulsar.jms.client.PulsarDestination;
+import com.echostreams.pulsar.jms.config.PulsarConfig;
 import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,9 +38,12 @@ public class PulsarJMSClientProvider {
     private final ProducerConfigurationData conf = new ProducerConfigurationData();
 
     public static void main(String[] args) throws JMSException {
+        // Reading config file property from resources/application.properties and assigning to variable
+        PulsarConfig.initializeConfig("/application.properties");
+
         PulsarJMSClientProvider pulsarJMSClientProvider = new PulsarJMSClientProvider();
         pulsarJMSClientProvider.executeProducerTest();
-        pulsarJMSClientProvider.executeProducerByteTest();
+        //pulsarJMSClientProvider.executeProducerByteTest();
         pulsarJMSClientProvider.executeConsumerTest();
 
         // Queue
