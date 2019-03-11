@@ -25,7 +25,7 @@ public class PulsarConnectionMetaDataImpl implements javax.jms.ConnectionMetaDat
     }
 
     @Override
-    public Enumeration getJMSXPropertyNames() {
+    public Enumeration<Object> getJMSXPropertyNames() {
         return new Enumeration<Object>() {
 
             @Override

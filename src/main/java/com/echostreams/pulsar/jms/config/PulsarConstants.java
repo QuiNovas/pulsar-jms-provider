@@ -2,6 +2,10 @@ package com.echostreams.pulsar.jms.config;
 
 public class PulsarConstants {
 
+    //PULSAR AUTH
+    public static final String TLS = "TLS";
+    public static final String ATHENZ = "ATHENZ";
+
     // JNDI related constants
     //public static final String JNDI_CONTEXT_FACTORY = PulsarJMSInitialContextFactory.class.getName();
     public static final String JNDI_CONNECTION_FACTORY_NAME = "pulsar/ConnectionFactory";

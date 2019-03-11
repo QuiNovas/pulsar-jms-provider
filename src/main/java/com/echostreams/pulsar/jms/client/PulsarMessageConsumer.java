@@ -2,22 +2,23 @@ package com.echostreams.pulsar.jms.client;
 
 import com.echostreams.pulsar.jms.message.PulsarMessage;
 import com.echostreams.pulsar.jms.utils.ObjectSerializer;
-import org.apache.pulsar.client.api.Consumer;
-import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.api.Schema;
-import org.apache.pulsar.client.api.SubscriptionType;
+import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.client.impl.ConsumerBuilderImpl;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
+import javax.jms.Message;
+import javax.jms.MessageListener;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class PulsarMessageConsumer implements MessageConsumer, QueueReceiver, TopicSubscriber {
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarMessageConsumer.class);
 
-    private Consumer consumer;
+    private Consumer<byte[]> consumer;
     private Destination destination;
     private PulsarSession session;
     private String messageSelector;
@@ -40,7 +41,7 @@ public class PulsarMessageConsumer implements MessageConsumer, QueueReceiver, To
             this.destination = destination;
             this.messageSelector = messageSelector;
             this.session = session;
-            this.consumer = new ConsumerBuilderImpl((PulsarClientImpl) session.getConnection().getClient(), Schema.STRING)
+            this.consumer = new ConsumerBuilderImpl((PulsarClientImpl) session.getConnection().getClient(), Schema.BYTES)
                     .topic(((PulsarDestination) destination).getName())
                     .subscriptionType(SubscriptionType.Shared)
                     .subscriptionName("test-subcription")
@@ -74,7 +75,7 @@ public class PulsarMessageConsumer implements MessageConsumer, QueueReceiver, To
 
     @Override
     public Message receive(long timeout) throws JMSException {
-        return readMessages(5000, TimeUnit.MILLISECONDS);
+        return readMessages(timeout, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -110,21 +111,15 @@ public class PulsarMessageConsumer implements MessageConsumer, QueueReceiver, To
         return false;
     }
 
-    private PulsarMessage readMessages(int timeout, TimeUnit timeUnit) {
+    private PulsarMessage readMessages(long timeout, TimeUnit timeUnit) {
         org.apache.pulsar.client.api.Message<byte[]> msg = null;
         PulsarMessage pulsarMessage = null;
         try {
-            // Wait until a message is available
-            while ((msg = consumer.receive()) != null) {
-                pulsarMessage = (PulsarMessage) new ObjectSerializer().byteArrayToObject(msg);
-
-                // Extract the message as a printable string and then log
-                LOGGER.info("Received message='{}' with msg-id={}", pulsarMessage.getBody(pulsarMessage.getJMSType().getClass()), msg.getMessageId());
-
-                // Acknowledge processing of the message so that it can be deleted
-
-                consumer.acknowledge(msg);
-            }
+            msg = consumer.receive();
+            pulsarMessage = (PulsarMessage) new ObjectSerializer().byteArrayToObject(msg);
+            pulsarMessage.setJMSMessageID(msg.getMessageId().toString());
+            // Acknowledge processing of the message so that it can be deleted
+            consumer.acknowledge(msg);
         } catch (PulsarClientException e) {
             LOGGER.error("Exception during receiving message", e);
         } catch (JMSException e) {
@@ -155,5 +150,14 @@ public class PulsarMessageConsumer implements MessageConsumer, QueueReceiver, To
 
     public void setNoLocal(boolean noLocal) {
         this.noLocal = noLocal;
+    }
+
+    public PulsarMessage receiveAsync() throws ExecutionException, InterruptedException {
+        PulsarMessage pulsarMessage = null;
+        CompletableFuture<org.apache.pulsar.client.api.Message<byte[]>> asyncMessage = consumer.receiveAsync();
+        if (asyncMessage != null) {
+            pulsarMessage = (PulsarMessage) new ObjectSerializer().byteArrayToObject(asyncMessage.get());
+        }
+        return pulsarMessage;
     }
 }

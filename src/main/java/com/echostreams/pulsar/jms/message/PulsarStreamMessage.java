@@ -13,12 +13,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 public class PulsarStreamMessage extends PulsarMessage implements StreamMessage {
+
     //private Stream payload;
 
     /**
      * Empty byte array for initialisation purposes.
      */
     private static final byte[] EMPTY = new byte[]{};
+    private static final long serialVersionUID = 1365492956623963016L;
     private byte[] payload = EMPTY;
 
     /**

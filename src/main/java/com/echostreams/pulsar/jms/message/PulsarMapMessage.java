@@ -15,6 +15,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PulsarMapMessage extends PulsarMessage implements MapMessage {
+
+    private static final long serialVersionUID = -4895466833333293321L;
+
     private Map payload;
 
     public PulsarMapMessage() throws JMSException {
@@ -98,42 +101,42 @@ public class PulsarMapMessage extends PulsarMessage implements MapMessage {
 
     @Override
     public void setBoolean(String name, boolean value) throws JMSException {
-        put(name, new Boolean(value));
+        put(name, value);
     }
 
     @Override
     public void setByte(String name, byte value) throws JMSException {
-        put(name, new Byte(value));
+        put(name, value);
     }
 
     @Override
     public void setShort(String name, short value) throws JMSException {
-        put(name, new Short(value));
+        put(name, value);
     }
 
     @Override
     public void setChar(String name, char value) throws JMSException {
-        put(name, new Character(value));
+        put(name, value);
     }
 
     @Override
     public void setInt(String name, int value) throws JMSException {
-        put(name, new Integer(value));
+        put(name, value);
     }
 
     @Override
     public void setLong(String name, long value) throws JMSException {
-        put(name, new Long(value));
+        put(name, value);
     }
 
     @Override
     public void setFloat(String name, float value) throws JMSException {
-        put(name, new Float(value));
+        put(name, value);
     }
 
     @Override
     public void setDouble(String name, double value) throws JMSException {
-        put(name, new Double(value));
+        put(name, value);
     }
 
     @Override
@@ -183,7 +186,7 @@ public class PulsarMapMessage extends PulsarMessage implements MapMessage {
         if (name == null || name.length() == 0)
             throw new PulsarJMSException("Object name cannot be null or empty", "INVALID_OBJECT_NAME");
 
-        return payload != null ? payload.containsKey(name) : false;
+        return payload != null && payload.containsKey(name);
     }
 
     private Object put(String name, Object value) throws JMSException {

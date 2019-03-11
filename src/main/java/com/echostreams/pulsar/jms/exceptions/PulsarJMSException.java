@@ -4,6 +4,8 @@ import javax.jms.JMSException;
 
 public class PulsarJMSException extends JMSException {
 
+    private static final long serialVersionUID = -7153852455484731200L;
+
     public PulsarJMSException(String reason, String errorCode) {
         super(reason, errorCode);
     }

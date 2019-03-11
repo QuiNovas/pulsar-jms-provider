@@ -9,6 +9,7 @@ import java.util.HashMap;
 
 public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
 
+    private static final long serialVersionUID = -157624964729797793L;
     /**
      * Empty byte array for initialisation purposes.
      */

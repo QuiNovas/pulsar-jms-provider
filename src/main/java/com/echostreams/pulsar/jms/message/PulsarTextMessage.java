@@ -8,6 +8,9 @@ import java.io.Serializable;
 import java.util.HashMap;
 
 public class PulsarTextMessage extends PulsarMessage implements TextMessage {
+
+    private static final long serialVersionUID = 3988939655140380666L;
+
     private String payload;
 
     public PulsarTextMessage() throws JMSException {

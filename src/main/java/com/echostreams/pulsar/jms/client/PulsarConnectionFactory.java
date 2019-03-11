@@ -1,6 +1,7 @@
 package com.echostreams.pulsar.jms.client;
 
 import com.echostreams.pulsar.jms.config.PulsarConfig;
+import com.echostreams.pulsar.jms.config.PulsarConstants;
 import com.echostreams.pulsar.jms.exceptions.PulsarJMSException;
 import org.apache.pulsar.client.api.Authentication;
 import org.apache.pulsar.client.api.AuthenticationFactory;
@@ -18,14 +19,13 @@ import java.util.Map;
 
 public class PulsarConnectionFactory implements ConnectionFactory, QueueConnectionFactory, TopicConnectionFactory, Serializable {
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarConnectionFactory.class);
-
-    private static String DEFAULT_BROKER = "pulsar://192.168.43.88:6650";
+    private static final long serialVersionUID = 5725538819716172914L;
 
     public PulsarConnectionFactory() {
     }
 
     public PulsarConnectionFactory(String brokerUrl) {
-        this.DEFAULT_BROKER = brokerUrl;
+        PulsarConfig.SERVICE_URL = brokerUrl;
     }
 
     public Connection createConnection() throws JMSException {
@@ -87,20 +87,40 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
 
     private Connection createPulsarConnection(String userName, String password) throws JMSException {
         PulsarClient client = null;
-        try {
-            client = PulsarClient.builder().serviceUrl(DEFAULT_BROKER).build();
-        } catch (PulsarClientException e) {
-            LOGGER.error("Could not create the connection :", e);
+
+        if (PulsarConstants.TLS.equals(PulsarConfig.ENABLE_AUTH)) {
+            return new PulsarConnection(tlsAuthentication());
+        }
+        if (PulsarConstants.ATHENZ.equals(PulsarConfig.ENABLE_AUTH)) {
+            return new PulsarConnection(athenzAuthentication());
+        } else {
+            try {
+                client = PulsarClient.builder().serviceUrl(PulsarConfig.SERVICE_URL).build();
+
+
+            } catch (PulsarClientException e) {
+                LOGGER.error("Could not create the connection :", e);
+            }
         }
         return new PulsarConnection(client);
     }
 
     private JMSContext createPulsarConnection(String userName, String password, int sessionMode) throws JMSException {
         PulsarClient client = null;
-        try {
-            client = PulsarClient.builder().serviceUrl(DEFAULT_BROKER).build();
-        } catch (PulsarClientException e) {
-            LOGGER.error("Could not create the connection :", e);
+
+        if (PulsarConstants.TLS.equals(PulsarConfig.ENABLE_AUTH)) {
+            return new PulsarJMSContext(tlsAuthentication());
+        }
+        if (PulsarConstants.ATHENZ.equals(PulsarConfig.ENABLE_AUTH)) {
+            return new PulsarJMSContext(athenzAuthentication());
+        } else {
+            try {
+                client = PulsarClient.builder().serviceUrl(PulsarConfig.SERVICE_URL).build();
+
+
+            } catch (PulsarClientException e) {
+                LOGGER.error("Could not create the connection :", e);
+            }
         }
         return new PulsarJMSContext(client);
     }

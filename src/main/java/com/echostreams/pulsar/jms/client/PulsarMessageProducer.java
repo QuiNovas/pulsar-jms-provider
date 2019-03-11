@@ -282,6 +282,6 @@ public class PulsarMessageProducer implements MessageProducer, QueueSender, Topi
         } finally {
             sendLock.unlock();
         }
-        LOGGER.info("Published msg='{}' with msg-id={}", message.getBody(message.getJMSType().getClass()), msgId);
+        LOGGER.info("Published msg='{}' with msg-id={}", message, msgId);
     }
 }

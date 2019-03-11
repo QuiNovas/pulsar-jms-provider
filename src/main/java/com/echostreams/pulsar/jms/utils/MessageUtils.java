@@ -12,14 +12,16 @@ import java.util.Map;
  */
 public final class MessageUtils {
 
-    /** Map holding all valid class/type pairs */
-    private static Map object2Type;
+    /**
+     * Map holding all valid class/type pairs
+     */
+    private static Map<Object, Object> object2Type;
 
     /**
      * initilizes the object2Type map.
      */
     static {
-        object2Type = new HashMap(8);
+        object2Type = new HashMap<>(8);
         object2Type.put(Boolean.class, "boolean");
         object2Type.put(Byte.class, "byte");
         object2Type.put(byte[].class, "byte[]");
@@ -33,7 +35,7 @@ public final class MessageUtils {
     }
 
     public static PulsarMessage transformMessage(Message sourceMsg) throws JMSException {
-        PulsarMessage msgCopy = null;
+        PulsarMessage msgCopy;
 
         if (sourceMsg instanceof TextMessage) {
             msgCopy = duplicateTextMessage((TextMessage) sourceMsg);

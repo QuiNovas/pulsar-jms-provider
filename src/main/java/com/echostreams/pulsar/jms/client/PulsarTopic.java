@@ -4,6 +4,9 @@ import javax.jms.JMSException;
 import javax.jms.Topic;
 
 public class PulsarTopic implements Topic, PulsarDestination {
+
+    private static final long serialVersionUID = 4029670726631550860L;
+
     private String topicName;
 
     /**

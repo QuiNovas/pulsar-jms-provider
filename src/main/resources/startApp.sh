@@ -16,6 +16,6 @@ fi
 CP="$APP_HOME"
 CP="$CP:$APP_HOME/$MAIN_JAR"
 
-JAVA_OPTS="-Xms512m -Xmx1024m -XX:PermSize=128m -XX:MaxPermSize=512m"
+JAVA_OPTS="-Xms256m -Xmx512m"
 
 exec $JAVA $JAVA_OPTS -cp $CP $MAIN_CLASS

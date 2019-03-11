@@ -13,6 +13,8 @@ import java.util.Map;
 
 public abstract class PulsarMessage implements Message, Serializable {
 
+    private static final long serialVersionUID = -1717904123537181827L;
+
     public static final String PROPERTIES = "properties";
     protected Map<String, Serializable> headers;
     /* read only flag for the message body */

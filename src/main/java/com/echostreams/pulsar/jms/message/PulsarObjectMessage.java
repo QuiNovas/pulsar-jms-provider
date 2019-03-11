@@ -8,6 +8,8 @@ import java.io.Serializable;
 import java.util.HashMap;
 
 public class PulsarObjectMessage extends PulsarMessage implements ObjectMessage {
+
+    private static final long serialVersionUID = -899234475829789736L;
     private Serializable payload;
 
     public PulsarObjectMessage() throws JMSException {

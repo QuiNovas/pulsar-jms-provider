@@ -9,6 +9,8 @@ import java.io.*;
 public class ObjectSerializer<T> implements Serializable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ObjectSerializer.class);
 
+    private static final long serialVersionUID = -310657388999555600L;
+
     public ObjectSerializer() {
 
     }
