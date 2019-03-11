@@ -75,7 +75,6 @@ public class PulsarJMSClientProvider {
         text.setText("this is a textmsg test.");
 
         producer.send(text);
-        producer.close();
 
         MessageConsumer consumer = session.createConsumer(topic);
         TextMessage textMessage = (TextMessage) consumer.receive();
@@ -84,8 +83,7 @@ public class PulsarJMSClientProvider {
         LOGGER.info("Received message='{}' with msg-id={}", textMessage.getText(), textMessage.getJMSMessageID());
 
         session.unsubscribe(((PulsarDestination) topic).getName());
-        consumer.close();
-        session.close();
+        con.close();
     }
 
     /*
@@ -104,7 +102,6 @@ public class PulsarJMSClientProvider {
         //text.writeBytes("this is a Byte test.".getBytes());
 
         producer.send(text);
-        producer.close();
 
         MessageConsumer consumer = session.createConsumer(topic);
         BytesMessage bytesMessage = (BytesMessage) consumer.receive();
@@ -117,8 +114,8 @@ public class PulsarJMSClientProvider {
         LOGGER.info("Received message='{}' with msg-id={}", textString, bytesMessage.getJMSMessageID());
 
         session.unsubscribe(((PulsarDestination) topic).getName());
-        consumer.close();
-        session.close();
+        con.close();
+
     }
 
     /*
@@ -135,7 +132,6 @@ public class PulsarJMSClientProvider {
         objectMessage.setObject(new String("This is a Object Test"));
 
         producer.send(objectMessage);
-        producer.close();
 
         MessageConsumer consumer = session.createConsumer(topic);
         ObjectMessage omi = (ObjectMessage) consumer.receive();
@@ -144,8 +140,7 @@ public class PulsarJMSClientProvider {
         LOGGER.info("Received message='{}' with msg-id={}", (String) omi.getObject(), omi.getJMSMessageID());
 
         session.unsubscribe(((PulsarDestination) topic).getName());
-        consumer.close();
-        session.close();
+        con.close();
     }
 
     /*
@@ -162,17 +157,15 @@ public class PulsarJMSClientProvider {
         mmo.setString("First", "256");
         mmo.setInt("Second", 512);
         producer.send(mmo);
-        producer.close();
 
         MessageConsumer consumer = session.createConsumer(topic);
-        MapMessage mmi = (MapMessage)consumer.receive();
+        MapMessage mmi = (MapMessage) consumer.receive();
 
         // Extract the message as a printable string and then log
         LOGGER.info("Received message=Map: Second as String '{}' First as double '{}' with msg-id={}", mmi.getString("Second"), mmi.getDouble("First"), mmi.getJMSMessageID());
 
         session.unsubscribe(((PulsarDestination) topic).getName());
-        consumer.close();
-        session.close();
+        con.close();
     }
 
     /*
@@ -189,17 +182,15 @@ public class PulsarJMSClientProvider {
         smo.writeString("256");
         smo.writeInt(512);
         producer.send(smo);
-        producer.close();
 
         MessageConsumer consumer = session.createConsumer(topic);
-        StreamMessage smi = (StreamMessage)consumer.receive();
+        StreamMessage smi = (StreamMessage) consumer.receive();
 
         // Extract the message as a printable string and then log
         LOGGER.info("Received message=Stream: Second as String '{}' First as float '{}' with msg-id={}", smi.readString(), smi.readFloat(), smi.getJMSMessageID());
 
         session.unsubscribe(((PulsarDestination) topic).getName());
-        consumer.close();
-        session.close();
+        con.close();
     }
 
     /*
@@ -216,7 +207,6 @@ public class PulsarJMSClientProvider {
         text.setText("this is a Q test.");
 
         qsend.send(text);
-        qsend.close();
 
         QueueReceiver qr = qsession.createReceiver(queue);
         TextMessage textMessage = (TextMessage) qr.receiveNoWait();
@@ -226,7 +216,7 @@ public class PulsarJMSClientProvider {
 
         qsession.unsubscribe(((PulsarDestination) topic).getName());
         qr.close();
-        qsession.close();
+        qcon.close();
     }
 
     /*
@@ -241,7 +231,6 @@ public class PulsarJMSClientProvider {
         TextMessage text = tsession.createTextMessage("Hello Topic");
 
         pub.send(text);
-        pub.close();
 
         TopicSubscriber tsub = tsession.createSubscriber(tp);
         TextMessage textMessage = (TextMessage) tsub.receiveNoWait();
@@ -250,8 +239,7 @@ public class PulsarJMSClientProvider {
         LOGGER.info("Received message='{}' with msg-id={}", textMessage.getText(), textMessage.getJMSMessageID());
 
         tsession.unsubscribe(((PulsarDestination) topic).getName());
-        tsub.close();
-        tsession.close();
+        tcon.close();
     }
 
     private void jms2ProduceAndConsumeTextTest() {

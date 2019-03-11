@@ -3,10 +3,7 @@ package com.echostreams.pulsar.jms.client;
 import com.echostreams.pulsar.jms.config.PulsarConfig;
 import com.echostreams.pulsar.jms.config.PulsarConstants;
 import com.echostreams.pulsar.jms.exceptions.PulsarJMSException;
-import org.apache.pulsar.client.api.Authentication;
-import org.apache.pulsar.client.api.AuthenticationFactory;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.client.impl.auth.AuthenticationAthenz;
 import org.apache.pulsar.client.impl.auth.AuthenticationTls;
 import org.slf4j.Logger;
@@ -86,47 +83,26 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
     }
 
     private Connection createPulsarConnection(String userName, String password) throws JMSException {
-        PulsarClient client = null;
-
         if (PulsarConstants.TLS.equals(PulsarConfig.ENABLE_AUTH)) {
             return new PulsarConnection(tlsAuthentication());
         }
         if (PulsarConstants.ATHENZ.equals(PulsarConfig.ENABLE_AUTH)) {
             return new PulsarConnection(athenzAuthentication());
-        } else {
-            try {
-                client = PulsarClient.builder().serviceUrl(PulsarConfig.SERVICE_URL).build();
-
-
-            } catch (PulsarClientException e) {
-                LOGGER.error("Could not create the connection :", e);
-            }
         }
-        return new PulsarConnection(client);
+        return new PulsarConnection(prepareClientWithoutAuth());
     }
 
     private JMSContext createPulsarConnection(String userName, String password, int sessionMode) throws JMSException {
-        PulsarClient client = null;
-
         if (PulsarConstants.TLS.equals(PulsarConfig.ENABLE_AUTH)) {
             return new PulsarJMSContext(tlsAuthentication());
         }
         if (PulsarConstants.ATHENZ.equals(PulsarConfig.ENABLE_AUTH)) {
             return new PulsarJMSContext(athenzAuthentication());
-        } else {
-            try {
-                client = PulsarClient.builder().serviceUrl(PulsarConfig.SERVICE_URL).build();
-
-
-            } catch (PulsarClientException e) {
-                LOGGER.error("Could not create the connection :", e);
-            }
         }
-        return new PulsarJMSContext(client);
+        return new PulsarJMSContext(prepareClientWithoutAuth());
     }
 
-    public static PulsarClient tlsAuthentication() {
-
+    public PulsarClient tlsAuthentication() {
         Map<String, String> authParams = new HashMap<>();
         authParams.put("tlsCertFile", PulsarConfig.TLS_CERT_FILE);
         authParams.put("tlsKeyFile", PulsarConfig.TLS_KEY_FILE);
@@ -136,14 +112,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         try {
             tlsAuth = AuthenticationFactory
                     .create(AuthenticationTls.class.getName(), authParams);
-
-            client = PulsarClient.builder()
-                    .serviceUrl(PulsarConfig.SERVICE_URL)
-                    .enableTls(true)
-                    .tlsTrustCertsFilePath(PulsarConfig.TLS_TRUST_CERTS_FILEPATH)
-                    .authentication(tlsAuth)
-                    .build();
-
+            client = prepareClient(tlsAuth);
         } catch (PulsarClientException e) {
             new PulsarJMSException("TLS Authentication Error", e.getMessage());
         }
@@ -151,7 +120,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         return client;
     }
 
-    public static PulsarClient athenzAuthentication() {
+    public PulsarClient athenzAuthentication() {
         Map<String, String> authParams = new HashMap<>();
         authParams.put("tenantDomain", PulsarConfig.ATHENZ_TENANT_DOMAIN); // Tenant domain name
         authParams.put("tenantService", PulsarConfig.ATHENZ_TENANT_SERVICE); // Tenant service name
@@ -164,17 +133,39 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         try {
             athenzAuth = AuthenticationFactory
                     .create(AuthenticationAthenz.class.getName(), authParams);
-
-            client = PulsarClient.builder()
-                    .serviceUrl(PulsarConfig.SERVICE_URL)
-                    .enableTls(true)
-                    .tlsTrustCertsFilePath(PulsarConfig.TLS_TRUST_CERTS_FILEPATH)
-                    .authentication(athenzAuth)
-                    .build();
+            client = prepareClient(athenzAuth);
         } catch (PulsarClientException e) {
             new PulsarJMSException("Athenz Authentication Error", e.getMessage());
         }
         return client;
+    }
+
+    private PulsarClient prepareClientWithoutAuth() {
+        PulsarClient client = null;
+        try {
+            if (PulsarConfig.clientBuilder == null) {
+                return PulsarClient.builder().serviceUrl(PulsarConfig.SERVICE_URL).build();
+            }
+            client = PulsarConfig.clientBuilder.build();
+            
+        } catch (PulsarClientException e) {
+            LOGGER.error("Could not create the connection :", e);
+        }
+        return client;
+    }
+
+    private PulsarClient prepareClient(Authentication tlsOrAthenzAuth) throws PulsarClientException {
+        if (PulsarConfig.clientBuilder == null) {
+            return PulsarClient.builder()
+                    .serviceUrl(PulsarConfig.SERVICE_URL)
+                    .tlsTrustCertsFilePath(PulsarConfig.TLS_TRUST_CERTS_FILEPATH)
+                    .authentication(tlsOrAthenzAuth)
+                    .build();
+        }
+        ClientBuilder clientBuilder = PulsarConfig.clientBuilder;
+        return clientBuilder.tlsTrustCertsFilePath(PulsarConfig.TLS_TRUST_CERTS_FILEPATH)
+                .authentication(tlsOrAthenzAuth)
+                .build();
     }
 
 }
