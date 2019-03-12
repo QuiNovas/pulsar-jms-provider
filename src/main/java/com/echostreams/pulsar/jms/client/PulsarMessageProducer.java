@@ -1,5 +1,6 @@
 package com.echostreams.pulsar.jms.client;
 
+import com.echostreams.pulsar.jms.config.PulsarConfig;
 import com.echostreams.pulsar.jms.utils.DestinationUtils;
 import com.echostreams.pulsar.jms.utils.MessageUtils;
 import com.echostreams.pulsar.jms.utils.ObjectSerializer;
@@ -50,8 +51,11 @@ public class PulsarMessageProducer implements MessageProducer, QueueSender, Topi
     public PulsarMessageProducer(Destination destination, PulsarSession session) throws PulsarClientException, JMSException {
         this.destination = (PulsarDestination) destination;
         this.session = session;
-        //TODO need to map with pulsar producer config
-        this.producer = new ProducerBuilderImpl((PulsarClientImpl) session.getConnection().getClient(), Schema.BYTES).topic(((PulsarDestination) destination).getName()).create();
+        if (PulsarConfig.producerConfig == null) {
+            this.producer = new ProducerBuilderImpl((PulsarClientImpl) session.getConnection().getClient(), Schema.BYTES).topic(((PulsarDestination) destination).getName()).create();
+        } else {
+            this.producer = PulsarConfig.producerConfig.topic(((PulsarDestination) destination).getName()).create();
+        }
     }
 
     @Override

@@ -2,6 +2,8 @@ package com.echostreams.pulsar.jms.config;
 
 import org.apache.pulsar.client.api.ClientBuilder;
 import org.apache.pulsar.client.api.PulsarClient;
+import org.apache.pulsar.client.impl.ConsumerBuilderImpl;
+import org.apache.pulsar.client.impl.ProducerBuilderImpl;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,7 +14,9 @@ public class PulsarConfig {
 
     public static PulsarConfig pulsarConfig;
     public Properties prop;
-    public static ClientBuilder clientBuilder = null;
+    public static ClientBuilder clientConfig = null;
+    public static ProducerBuilderImpl producerConfig = null;
+    public static ConsumerBuilderImpl consumerConfig = null;
 
     /*
      * PulsarClient Config
@@ -92,25 +96,33 @@ public class PulsarConfig {
         ATHENZ_KEY_ID = properties.getProperty("pulsar.athenz.keyId", "0");
     }
 
-    public void setClientConfigFromConfigFile() {
-        clientBuilder = PulsarClient.builder();
-        clientBuilder.serviceUrl(SERVICE_URL);
-        clientBuilder.operationTimeout(OPERATION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        clientBuilder.statsInterval(STATS_INTERVAL_SECONDS, TimeUnit.SECONDS);
-        clientBuilder.ioThreads(NUM_IO_THREADS);
-        clientBuilder.listenerThreads(NUM_LISTENER_THREADS);
-        clientBuilder.connectionsPerBroker(CONNECTIONS_PER_BROKER);
-        clientBuilder.enableTcpNoDelay(USE_TCP_NODELAY);
-        clientBuilder.allowTlsInsecureConnection(TLS_ALLOW_INSECURE_CONNECTION);
-        clientBuilder.enableTlsHostnameVerification(TLS_HOSTNAME_VERIFICATION_ENABLE);
-        clientBuilder.maxConcurrentLookupRequests(CONCURRENT_LOOKUP_REQUEST);
-        clientBuilder.maxNumberOfRejectedRequestPerConnection(MAX_NUMBER_OF_REJECTED_REQUEST_PER_CONNECTION);
-        clientBuilder.keepAliveInterval(KEEP_ALIVE_INTERVAL_SECONDS, TimeUnit.SECONDS);
+    public void changeDefaultClientConfigFromConfigFile() {
+        clientConfig = PulsarClient.builder();
+        clientConfig.serviceUrl(SERVICE_URL);
+        clientConfig.operationTimeout(OPERATION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        clientConfig.statsInterval(STATS_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        clientConfig.ioThreads(NUM_IO_THREADS);
+        clientConfig.listenerThreads(NUM_LISTENER_THREADS);
+        clientConfig.connectionsPerBroker(CONNECTIONS_PER_BROKER);
+        clientConfig.enableTcpNoDelay(USE_TCP_NODELAY);
+        clientConfig.allowTlsInsecureConnection(TLS_ALLOW_INSECURE_CONNECTION);
+        clientConfig.enableTlsHostnameVerification(TLS_HOSTNAME_VERIFICATION_ENABLE);
+        clientConfig.maxConcurrentLookupRequests(CONCURRENT_LOOKUP_REQUEST);
+        clientConfig.maxNumberOfRejectedRequestPerConnection(MAX_NUMBER_OF_REJECTED_REQUEST_PER_CONNECTION);
+        clientConfig.keepAliveInterval(KEEP_ALIVE_INTERVAL_SECONDS, TimeUnit.SECONDS);
     }
 
-    public void setClientConfigWithUser(ClientBuilder clientBuilderConfig) {
-        clientBuilder = PulsarClient.builder();
-        clientBuilder = clientBuilderConfig;
+    public static void changeDefaultClientConfig(ClientBuilder clientBuilder) {
+        clientConfig = PulsarClient.builder();
+        clientConfig = clientBuilder;
+    }
+
+    public static void changeDefaultProducerConfig(ProducerBuilderImpl producerBuilderImpl) {
+        producerConfig = producerBuilderImpl;
+    }
+
+    public static void changeDefaultConsumerConfig(ConsumerBuilderImpl consumerBuilder) {
+        consumerConfig = consumerBuilder;
     }
 
 }

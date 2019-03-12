@@ -1,9 +1,13 @@
 package com.echostreams.pulsar.jms;
 
+import com.echostreams.pulsar.jms.client.PulsarConnection;
 import com.echostreams.pulsar.jms.client.PulsarConnectionFactory;
 import com.echostreams.pulsar.jms.client.PulsarDestination;
 import com.echostreams.pulsar.jms.config.PulsarConfig;
-import org.apache.pulsar.client.impl.conf.ProducerConfigurationData;
+import org.apache.pulsar.client.api.*;
+import org.apache.pulsar.client.impl.ConsumerBuilderImpl;
+import org.apache.pulsar.client.impl.ProducerBuilderImpl;
+import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,8 +40,6 @@ public class PulsarJMSClientProvider {
     private JMSContext jmsContext;
     private Destination ctopic;
 
-    private final ProducerConfigurationData conf = new ProducerConfigurationData();
-
     public static void main(String[] args) throws JMSException, IOException {
         // Reading config file property from resources/application.properties and assigning to variable
         PulsarConfig.initializeConfig("/application.properties");
@@ -47,7 +49,7 @@ public class PulsarJMSClientProvider {
         //pulsarJMSClientProvider.produceAndConsumeBytesTest();
         pulsarJMSClientProvider.produceAndConsumeObjectTest();
         pulsarJMSClientProvider.produceAndConsumeMapTest();
-        pulsarJMSClientProvider.produceAndConsumeStreamTest();
+        //pulsarJMSClientProvider.produceAndConsumeStreamTest();
 
        /*
        // Queue
@@ -65,9 +67,20 @@ public class PulsarJMSClientProvider {
     * TextMessage
     */
     private void produceAndConsumeTextTest() throws JMSException {
+        // Change default Pulsar client config value to custom value
+        ClientBuilder clientBuilder = PulsarClient.builder();
+        clientBuilder.serviceUrl(PulsarConfig.SERVICE_URL);
+        PulsarConfig.changeDefaultClientConfig(clientBuilder);
+
         con = factory.createConnection();
         session = con.createSession();
         topic = session.createTopic("test");
+
+        // Changing the default value of Producer config
+        PulsarConnection pulsarConnection = (PulsarConnection) con;
+        ProducerBuilderImpl producerBuilderImpl = new ProducerBuilderImpl((PulsarClientImpl) pulsarConnection.getClient(), Schema.BYTES);
+        producerBuilderImpl.producerName("test-producer").compressionType(CompressionType.LZ4);
+        PulsarConfig.changeDefaultProducerConfig(producerBuilderImpl);
 
         MessageProducer producer = session.createProducer(topic);
 
@@ -76,14 +89,23 @@ public class PulsarJMSClientProvider {
 
         producer.send(text);
 
+        // Changing the default value of Consumer config
+        ConsumerBuilderImpl consumerBuilder = new ConsumerBuilderImpl((PulsarClientImpl) pulsarConnection.getClient(), Schema.BYTES);
+        consumerBuilder.consumerName("test-producer")
+                .subscriptionType(SubscriptionType.Shared)
+                .subscriptionName("test-subcription");
+        PulsarConfig.changeDefaultConsumerConfig(consumerBuilder);
+
         MessageConsumer consumer = session.createConsumer(topic);
         TextMessage textMessage = (TextMessage) consumer.receive();
 
         // Extract the message as a printable string and then log
         LOGGER.info("Received message='{}' with msg-id={}", textMessage.getText(), textMessage.getJMSMessageID());
 
-        session.unsubscribe(((PulsarDestination) topic).getName());
         con.close();
+        PulsarConfig.clientConfig = null;
+        PulsarConfig.producerConfig = null;
+        PulsarConfig.consumerConfig = null;
     }
 
     /*
@@ -113,9 +135,7 @@ public class PulsarJMSClientProvider {
         // Extract the message as a printable string and then log
         LOGGER.info("Received message='{}' with msg-id={}", textString, bytesMessage.getJMSMessageID());
 
-        session.unsubscribe(((PulsarDestination) topic).getName());
         con.close();
-
     }
 
     /*
@@ -139,7 +159,6 @@ public class PulsarJMSClientProvider {
         // Extract the message as a printable string and then log
         LOGGER.info("Received message='{}' with msg-id={}", (String) omi.getObject(), omi.getJMSMessageID());
 
-        session.unsubscribe(((PulsarDestination) topic).getName());
         con.close();
     }
 
@@ -164,7 +183,6 @@ public class PulsarJMSClientProvider {
         // Extract the message as a printable string and then log
         LOGGER.info("Received message=Map: Second as String '{}' First as double '{}' with msg-id={}", mmi.getString("Second"), mmi.getDouble("First"), mmi.getJMSMessageID());
 
-        session.unsubscribe(((PulsarDestination) topic).getName());
         con.close();
     }
 
@@ -189,7 +207,6 @@ public class PulsarJMSClientProvider {
         // Extract the message as a printable string and then log
         LOGGER.info("Received message=Stream: Second as String '{}' First as float '{}' with msg-id={}", smi.readString(), smi.readFloat(), smi.getJMSMessageID());
 
-        session.unsubscribe(((PulsarDestination) topic).getName());
         con.close();
     }
 
@@ -214,8 +231,6 @@ public class PulsarJMSClientProvider {
         // Extract the message as a printable string and then log
         LOGGER.info("Received message='{}' with msg-id={}", textMessage.getText(), textMessage.getJMSMessageID());
 
-        qsession.unsubscribe(((PulsarDestination) topic).getName());
-        qr.close();
         qcon.close();
     }
 
@@ -238,7 +253,6 @@ public class PulsarJMSClientProvider {
         // Extract the message as a printable string and then log
         LOGGER.info("Received message='{}' with msg-id={}", textMessage.getText(), textMessage.getJMSMessageID());
 
-        tsession.unsubscribe(((PulsarDestination) topic).getName());
         tcon.close();
     }
 

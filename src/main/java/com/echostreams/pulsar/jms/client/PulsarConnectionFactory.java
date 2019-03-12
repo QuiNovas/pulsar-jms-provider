@@ -143,11 +143,11 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
     private PulsarClient prepareClientWithoutAuth() {
         PulsarClient client = null;
         try {
-            if (PulsarConfig.clientBuilder == null) {
+            if (PulsarConfig.clientConfig == null) {
                 return PulsarClient.builder().serviceUrl(PulsarConfig.SERVICE_URL).build();
             }
-            client = PulsarConfig.clientBuilder.build();
-            
+            client = PulsarConfig.clientConfig.build();
+
         } catch (PulsarClientException e) {
             LOGGER.error("Could not create the connection :", e);
         }
@@ -155,14 +155,14 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
     }
 
     private PulsarClient prepareClient(Authentication tlsOrAthenzAuth) throws PulsarClientException {
-        if (PulsarConfig.clientBuilder == null) {
+        if (PulsarConfig.clientConfig == null) {
             return PulsarClient.builder()
                     .serviceUrl(PulsarConfig.SERVICE_URL)
                     .tlsTrustCertsFilePath(PulsarConfig.TLS_TRUST_CERTS_FILEPATH)
                     .authentication(tlsOrAthenzAuth)
                     .build();
         }
-        ClientBuilder clientBuilder = PulsarConfig.clientBuilder;
+        ClientBuilder clientBuilder = PulsarConfig.clientConfig;
         return clientBuilder.tlsTrustCertsFilePath(PulsarConfig.TLS_TRUST_CERTS_FILEPATH)
                 .authentication(tlsOrAthenzAuth)
                 .build();

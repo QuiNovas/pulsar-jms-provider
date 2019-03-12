@@ -1,5 +1,6 @@
 package com.echostreams.pulsar.jms.client;
 
+import com.echostreams.pulsar.jms.config.PulsarConfig;
 import com.echostreams.pulsar.jms.message.PulsarMessage;
 import com.echostreams.pulsar.jms.utils.ObjectSerializer;
 import org.apache.pulsar.client.api.*;
@@ -41,11 +42,15 @@ public class PulsarMessageConsumer implements MessageConsumer, QueueReceiver, To
             this.destination = destination;
             this.messageSelector = messageSelector;
             this.session = session;
-            this.consumer = new ConsumerBuilderImpl((PulsarClientImpl) session.getConnection().getClient(), Schema.BYTES)
-                    .topic(((PulsarDestination) destination).getName())
-                    .subscriptionType(SubscriptionType.Shared)
-                    .subscriptionName("test-subcription")
-                    .subscribe();
+            if (PulsarConfig.consumerConfig == null) {
+                this.consumer = new ConsumerBuilderImpl((PulsarClientImpl) session.getConnection().getClient(), Schema.BYTES)
+                        .topic(((PulsarDestination) destination).getName())
+                        .subscriptionType(SubscriptionType.Shared)
+                        .subscriptionName("test-subcription")
+                        .subscribe();
+            } else {
+                this.consumer = PulsarConfig.consumerConfig.topic(((PulsarDestination) destination).getName()).subscribe();
+            }
         } catch (PulsarClientException e) {
             LOGGER.error("", e);
         }
