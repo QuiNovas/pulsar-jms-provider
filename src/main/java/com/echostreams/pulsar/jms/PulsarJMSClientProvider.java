@@ -2,7 +2,6 @@ package com.echostreams.pulsar.jms;
 
 import com.echostreams.pulsar.jms.client.PulsarConnection;
 import com.echostreams.pulsar.jms.client.PulsarConnectionFactory;
-import com.echostreams.pulsar.jms.client.PulsarDestination;
 import com.echostreams.pulsar.jms.config.PulsarConfig;
 import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.client.impl.ConsumerBuilderImpl;
@@ -46,13 +45,12 @@ public class PulsarJMSClientProvider {
 
         PulsarJMSClientProvider pulsarJMSClientProvider = new PulsarJMSClientProvider();
         pulsarJMSClientProvider.produceAndConsumeTextTest();
-        //pulsarJMSClientProvider.produceAndConsumeBytesTest();
+        pulsarJMSClientProvider.produceAndConsumeBytesTest();
         pulsarJMSClientProvider.produceAndConsumeObjectTest();
         pulsarJMSClientProvider.produceAndConsumeMapTest();
-        //pulsarJMSClientProvider.produceAndConsumeStreamTest();
+        pulsarJMSClientProvider.produceAndConsumeStreamTest();
 
-       /*
-       // Queue
+        // Queue
         pulsarJMSClientProvider.qSendAndReceiveTextTest();
 
         //Topic
@@ -60,7 +58,6 @@ public class PulsarJMSClientProvider {
 
         //JMS2-JMSContext
         pulsarJMSClientProvider.jms2ProduceAndConsumeTextTest();
-*/
     }
 
     /*
@@ -205,7 +202,7 @@ public class PulsarJMSClientProvider {
         StreamMessage smi = (StreamMessage) consumer.receive();
 
         // Extract the message as a printable string and then log
-        LOGGER.info("Received message=Stream: Second as String '{}' First as float '{}' with msg-id={}", smi.readString(), smi.readFloat(), smi.getJMSMessageID());
+        LOGGER.info("Received message=Stream: Second as String '{}' First as float '{}' with msg-id={}", smi.readFloat(), smi.readString(), smi.getJMSMessageID());
 
         con.close();
     }
@@ -221,7 +218,7 @@ public class PulsarJMSClientProvider {
         QueueSender qsend = qsession.createSender(queue);
 
         TextMessage text = session.createTextMessage();
-        text.setText("this is a Q test.");
+        text.setText("Hello Text Queue using QueueConnection Sender Receiver");
 
         qsend.send(text);
 
@@ -243,7 +240,7 @@ public class PulsarJMSClientProvider {
         tp = tsession.createTopic("test");
 
         TopicPublisher pub = tsession.createPublisher(tp);
-        TextMessage text = tsession.createTextMessage("Hello Topic");
+        TextMessage text = tsession.createTextMessage("Hello Text Topic using TopicConnection Publisher Subscriber");
 
         pub.send(text);
 
@@ -256,22 +253,21 @@ public class PulsarJMSClientProvider {
         tcon.close();
     }
 
-    private void jms2ProduceAndConsumeTextTest() {
+    private void jms2ProduceAndConsumeTextTest() throws JMSException {
         try {
             jmsContext = cfactory.createContext();
             ctopic = jmsContext.createTopic("test");
 
-            jmsContext.createProducer().send(ctopic, "Hello JMS 2");
+            jmsContext.createProducer().send(ctopic, "Hello  Text JMS 2 using JMSContext JMSProducer JMSConsumer");
 
             JMSConsumer consumer = jmsContext.createConsumer(ctopic);
-            consumer.receive();
-            jmsContext.unsubscribe(((PulsarDestination) ctopic).getName());
-            consumer.close();
+            TextMessage textMessage = (TextMessage) consumer.receive();
+            // Extract the message as a printable string and then log
+            LOGGER.info("Received message='{}' with msg-id={}", textMessage.getText(), textMessage.getJMSMessageID());
+
+            jmsContext.close();
         } catch (JMSRuntimeException e) {
             LOGGER.error("JMSRuntimeException", e);
-        } catch (JMSException e) {
-            LOGGER.error("JMSException", e);
         }
-
     }
 }

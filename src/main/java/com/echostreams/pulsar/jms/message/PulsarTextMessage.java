@@ -14,6 +14,7 @@ public class PulsarTextMessage extends PulsarMessage implements TextMessage {
     private String payload;
 
     public PulsarTextMessage() throws JMSException {
+        super();
         headers = new HashMap<>();
         headers.put(PROPERTIES, new HashMap<String, Serializable>());
         setJMSType(PulsarConstants.TEXT_MESSAGE);

@@ -13,6 +13,7 @@ public class PulsarObjectMessage extends PulsarMessage implements ObjectMessage 
     private Serializable payload;
 
     public PulsarObjectMessage() throws JMSException {
+        super();
         headers = new HashMap<>();
         headers.put(PROPERTIES, new HashMap<String, Serializable>());
         setJMSType(PulsarConstants.OBJECT_MESSAGE);

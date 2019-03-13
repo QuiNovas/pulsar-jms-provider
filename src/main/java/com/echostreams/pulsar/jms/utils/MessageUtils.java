@@ -70,7 +70,7 @@ public final class MessageUtils {
         byte[] buffer = new byte[1024];
         while ((readAmount = sourceMsg.readBytes(buffer)) > 0)
             copy.writeBytes(buffer, 0, readAmount);
-
+        copy.reset();
         return copy;
     }
 
@@ -92,22 +92,23 @@ public final class MessageUtils {
             Object value = sourceMsg.getObject(name);
             copy.setObject(name, value);
         }
-
         return copy;
     }
 
     private static PulsarMessage duplicateStreamMessage(StreamMessage sourceMsg) throws JMSException {
         PulsarStreamMessage copy = new PulsarStreamMessage();
         copyProperties(sourceMsg, copy);
-
         sourceMsg.reset();
+        Object obj = null;
         try {
-            while (true)
-                copy.writeObject(sourceMsg.readObject());
+            while ((obj = sourceMsg.readObject()) != null) {
+                copy.writeObject(obj);
+            }
         } catch (MessageEOFException e) {
-            // Complete
+            // if an end of message stream as expected
         }
-
+        // Writing is finished, so set read only mode true to read messages which sent
+        copy.reset();
         return copy;
     }
 

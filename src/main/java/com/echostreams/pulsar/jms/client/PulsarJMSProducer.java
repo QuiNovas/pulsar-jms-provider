@@ -1,5 +1,6 @@
 package com.echostreams.pulsar.jms.client;
 
+import com.echostreams.pulsar.jms.config.PulsarConfig;
 import com.echostreams.pulsar.jms.exceptions.JMSExceptionSupport;
 import com.echostreams.pulsar.jms.utils.DestinationUtils;
 import com.echostreams.pulsar.jms.utils.MessageConverterUtils;
@@ -53,8 +54,11 @@ public class PulsarJMSProducer implements JMSProducer {
     public PulsarJMSProducer(PulsarJMSContext jmsContext) throws PulsarClientException, JMSException {
         this.jmsContext = jmsContext;
         this.replyTo = jmsContext.getDestination();
-        //TODO need to map with pulsar producer config
-        this.producer = new ProducerBuilderImpl((PulsarClientImpl) jmsContext.getClient(), Schema.BYTES).topic(((PulsarDestination) replyTo).getName()).create();
+        if (PulsarConfig.producerConfig == null) {
+            this.producer = new ProducerBuilderImpl((PulsarClientImpl) jmsContext.getClient(), Schema.BYTES).topic(((PulsarDestination) replyTo).getName()).create();
+        } else {
+            this.producer = PulsarConfig.producerConfig.topic(((PulsarDestination) replyTo).getName()).create();
+        }
     }
 
     @Override

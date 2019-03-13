@@ -1,5 +1,6 @@
 package com.echostreams.pulsar.jms.client;
 
+import com.echostreams.pulsar.jms.config.PulsarConfig;
 import com.echostreams.pulsar.jms.message.PulsarMessage;
 import com.echostreams.pulsar.jms.utils.ObjectSerializer;
 import org.apache.pulsar.client.api.Consumer;
@@ -27,11 +28,15 @@ public class PulsarJMSConsumer implements JMSConsumer {
             this.destination = destination;
             this.messageSelector = messageSelector;
             this.jmsContext = jmsContext;
-            this.consumer = new ConsumerBuilderImpl((PulsarClientImpl) jmsContext.getClient(), Schema.BYTES)
-                    .topic(((PulsarDestination) destination).getName())
-                    .subscriptionType(SubscriptionType.Shared)
-                    .subscriptionName("test-subcription")
-                    .subscribe();
+            if (PulsarConfig.consumerConfig == null) {
+                this.consumer = new ConsumerBuilderImpl((PulsarClientImpl) jmsContext.getClient(), Schema.BYTES)
+                        .topic(((PulsarDestination) destination).getName())
+                        .subscriptionType(SubscriptionType.Shared)
+                        .subscriptionName("test-subcription")
+                        .subscribe();
+            } else {
+                this.consumer = PulsarConfig.consumerConfig.topic(((PulsarDestination) destination).getName()).subscribe();
+            }
         } catch (PulsarClientException e) {
             LOGGER.error("PulsarJMSConsumer exception", e);
         }
@@ -113,9 +118,9 @@ public class PulsarJMSConsumer implements JMSConsumer {
             // Acknowledge processing of the message so that it can be deleted
             consumer.acknowledge(msg);
         } catch (PulsarClientException e) {
-            LOGGER.error("Exception during receiving message", e);
+            LOGGER.error("PulsarClientException during receiving message", e);
         } catch (JMSException e) {
-            LOGGER.error("Exception during receiving message", e);
+            LOGGER.error("JMSException during receiving message", e);
         }
         return pulsarMessage;
     }

@@ -21,6 +21,7 @@ public class PulsarMapMessage extends PulsarMessage implements MapMessage {
     private Map payload;
 
     public PulsarMapMessage() throws JMSException {
+        super();
         headers = new HashMap<>();
         headers.put(PROPERTIES, new HashMap<String, Serializable>());
         setJMSType(PulsarConstants.MAP_MESSAGE);

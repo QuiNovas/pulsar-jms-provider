@@ -4,26 +4,25 @@ import com.echostreams.pulsar.jms.config.PulsarConstants;
 
 import javax.jms.*;
 import java.io.*;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
 public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
 
     private static final long serialVersionUID = -157624964729797793L;
-    /**
-     * Empty byte array for initialisation purposes.
-     */
-    private static final byte[] EMPTY = new byte[]{};
-    private byte[] payload = EMPTY;
+
+    private byte[] payload;
     private transient DataInputStream input;
     private transient DataOutputStream output;
     private transient ByteArrayInputStream byteInput;
     private transient ByteArrayOutputStream byteOutput;
 
     public PulsarBytesMessage() throws JMSException {
+        super();
         headers = new HashMap<>();
         headers.put(PROPERTIES, new HashMap<String, Serializable>());
         setJMSType(PulsarConstants.BYTES_MESSAGE);
+        setToWriteOnlyMode();
     }
 
     @Override
@@ -43,7 +42,7 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
                 output.close();
                 output = null;
             }
-            payload = EMPTY;
+            this.payload = new byte[0];
             byteOutput = null;
             output = null;
         } catch (IOException exception) {
@@ -55,8 +54,7 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
     @Override
     public <T> T getBody(Class<T> c) throws JMSException {
 
-        return (T) payload;
-/*        //message is in write-only mode
+        //message is in write-only mode
         if (!this.readOnlyBody) {
             //flush the outer DataOutputStream...
             try {
@@ -71,7 +69,7 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         else {
             //return the complete content of the message
             return (T) this.payload;
-        }*/
+        }
     }
 
     @Override
@@ -254,7 +252,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         } catch (IOException e) {
             throw new JMSException(e.getMessage());
         }
-
     }
 
     @Override
@@ -334,7 +331,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         checkWriteMode();
         try {
             getOutputStream().write(value);
-            this.payload = byteOutput.toByteArray();
         } catch (IOException e) {
             throw new JMSException(e.getMessage());
         }
@@ -410,7 +406,6 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         }
         //set read-only mode
         this.readOnlyBody = true;
-
     }
 
     /**
@@ -450,10 +445,33 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
         return output;
     }
 
+    private void setToWriteOnlyMode() {
+        try {
+            input.close();
+        } catch (Exception ignore) {
+        }
+        resetOutputStreams();
+        this.readOnlyBody = false;
+    }
+
+    private void resetOutputStreams() {
+        //flush and close output stream
+        try {
+            if (this.output != null) {
+                this.output.flush();
+                this.output.close();
+            }
+        } catch (Exception ignore) {
+        }
+
+        this.byteOutput = new ByteArrayOutputStream();
+        this.output = new DataOutputStream(byteOutput);
+    }
+
     @Override
     public String toString() {
         return "PulsarBytesMessage{" +
-                "payload=" + Arrays.toString(payload) +
+                "payload=" + new String(payload, StandardCharsets.UTF_8) +
                 ", input=" + input +
                 ", output=" + output +
                 ", byteInput=" + byteInput +

@@ -20,6 +20,10 @@ public abstract class PulsarMessage implements Message, Serializable {
     /* read only flag for the message body */
     protected boolean readOnlyBody;
 
+    public PulsarMessage() {
+        super();
+    }
+
     @PostConstruct
     protected void verify() {
         if (headers == null) {

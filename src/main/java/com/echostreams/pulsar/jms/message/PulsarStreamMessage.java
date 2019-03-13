@@ -15,13 +15,8 @@ import java.util.HashMap;
 public class PulsarStreamMessage extends PulsarMessage implements StreamMessage {
 
     //private Stream payload;
-
-    /**
-     * Empty byte array for initialisation purposes.
-     */
-    private static final byte[] EMPTY = new byte[]{};
     private static final long serialVersionUID = 1365492956623963016L;
-    private byte[] payload = EMPTY;
+    private byte[] payload;
 
     /**
      * list holding the message body
@@ -39,6 +34,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
     private ByteArrayInputStream byteStream;
 
     public PulsarStreamMessage() throws JMSException {
+        super();
         headers = new HashMap<>();
         headers.put(PROPERTIES, new HashMap<String, Serializable>());
         setJMSType(PulsarConstants.STREAM_MESSAGE);
@@ -47,14 +43,15 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
 
     @Override
     public void clearBody() throws JMSException {
-        payload = EMPTY;
+        this.payload = new byte[0];
         body.clear();
         pos = 0;
+        this.readOnlyBody = false;
     }
 
     @Override
     public <T> T getBody(Class<T> c) throws JMSException {
-        return (T) payload;
+        return (T) body;
     }
 
     @Override
@@ -206,7 +203,6 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
 
     @Override
     public void writeObject(Object value) throws JMSException {
-        checkWriteMode();
         if (MessageUtils.isValidType(value) == false) {
             throw new MessageFormatException("invalid type");
         }

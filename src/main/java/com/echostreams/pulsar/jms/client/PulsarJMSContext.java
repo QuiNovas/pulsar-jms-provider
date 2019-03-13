@@ -91,6 +91,7 @@ public class PulsarJMSContext implements JMSContext {
     public void close() {
         try {
             consumer.close();
+            client.close();
         } catch (Exception e) {
         }
     }
