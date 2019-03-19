@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class PulsarJMSConsumer implements JMSConsumer {
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarJMSConsumer.class);
@@ -108,19 +108,27 @@ public class PulsarJMSConsumer implements JMSConsumer {
     };
 
     private PulsarMessage readMessages(long timeout, TimeUnit timeUnit) {
-        org.apache.pulsar.client.api.Message<byte[]> msg = null;
+
+        // Submitting a Callable task to an ExecutorService and getting the result via a Future object.
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        Future<PulsarMessage> pulsarMessageFuture = executorService.submit(new PulsarJMSConsumerThread(timeout, timeUnit));
+
         PulsarMessage pulsarMessage = null;
         try {
-            msg = consumer.receive();
-            pulsarMessage = (PulsarMessage) new ObjectSerializer().byteArrayToObject(msg);
-            pulsarMessage.setJMSMessageID(msg.getMessageId().toString());
 
-            // Acknowledge processing of the message so that it can be deleted
-            consumer.acknowledge(msg);
-        } catch (PulsarClientException e) {
-            LOGGER.error("PulsarClientException during receiving message", e);
-        } catch (JMSException e) {
-            LOGGER.error("JMSException during receiving message", e);
+            pulsarMessage = pulsarMessageFuture.get();
+
+        } catch (InterruptedException | ExecutionException ex) {
+            ex.printStackTrace();
+        }
+
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
         }
         return pulsarMessage;
     }
@@ -130,6 +138,37 @@ public class PulsarJMSConsumer implements JMSConsumer {
             consumer.unsubscribe();
         } catch (PulsarClientException e) {
             LOGGER.error("Exception during unsubscribe message", e);
+        }
+    }
+
+    /*
+     * Concurrently consume the pulsar message and return it back
+     */
+    private class PulsarJMSConsumerThread implements Callable<PulsarMessage> sc{
+        private final long timeOut;
+        private final TimeUnit timeUnit;
+
+        private PulsarJMSConsumerThread(long timeOut, TimeUnit timeUnit) {
+            this.timeOut = timeOut;
+            this.timeUnit = timeUnit;
+        }
+
+        @Override
+        public PulsarMessage call() {
+            org.apache.pulsar.client.api.Message<byte[]> msg = null;
+            PulsarMessage pulsarMessage = null;
+            try {
+                msg = consumer.receive();
+                pulsarMessage = (PulsarMessage) new ObjectSerializer().byteArrayToObject(msg);
+                pulsarMessage.setJMSMessageID(msg.getMessageId().toString());
+                // Acknowledge processing of the message so that it can be deleted
+                consumer.acknowledge(msg);
+            } catch (PulsarClientException e) {
+                LOGGER.error("Exception during receiving message", e);
+            } catch (JMSException e) {
+                LOGGER.error("Exception during receiving message", e);
+            }
+            return pulsarMessage;
         }
     }
 

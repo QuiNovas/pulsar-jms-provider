@@ -103,6 +103,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
     }
 
     public PulsarClient tlsAuthentication() {
+        LOGGER.info("Try Connecting to PulsarClient with TLS Auth");
         Map<String, String> authParams = new HashMap<>();
         authParams.put("tlsCertFile", PulsarConfig.TLS_CERT_FILE);
         authParams.put("tlsKeyFile", PulsarConfig.TLS_KEY_FILE);
@@ -121,6 +122,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
     }
 
     public PulsarClient athenzAuthentication() {
+        LOGGER.info("Try Connecting to PulsarClient with Athenz Auth");
         Map<String, String> authParams = new HashMap<>();
         authParams.put("tenantDomain", PulsarConfig.ATHENZ_TENANT_DOMAIN); // Tenant domain name
         authParams.put("tenantService", PulsarConfig.ATHENZ_TENANT_SERVICE); // Tenant service name
