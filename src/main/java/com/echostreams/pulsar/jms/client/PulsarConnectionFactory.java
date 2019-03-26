@@ -18,11 +18,17 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarConnectionFactory.class);
     private static final long serialVersionUID = 5725538819716172914L;
 
+    public static String DEFAULT_BROKER_URL = "pulsar://localhost:6500";
+    public static String DEFAULT_BROKER_PROP = "brokerUrl";
+
+    private static String SERVICE_URL;
+
+
     public PulsarConnectionFactory() {
     }
 
     public PulsarConnectionFactory(String brokerUrl) {
-        PulsarConfig.SERVICE_URL = brokerUrl;
+        SERVICE_URL = brokerUrl;
     }
 
     public Connection createConnection() throws JMSException {
@@ -146,7 +152,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         PulsarClient client = null;
         try {
             if (PulsarConfig.clientConfig == null) {
-                return PulsarClient.builder().serviceUrl(PulsarConfig.SERVICE_URL).build();
+                return PulsarClient.builder().serviceUrl(getUpdatedServiceUrl()).build();
             }
             client = PulsarConfig.clientConfig.build();
 
@@ -159,7 +165,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
     private PulsarClient prepareClient(Authentication tlsOrAthenzAuth) throws PulsarClientException {
         if (PulsarConfig.clientConfig == null) {
             return PulsarClient.builder()
-                    .serviceUrl(PulsarConfig.SERVICE_URL)
+                    .serviceUrl(getUpdatedServiceUrl())
                     .tlsTrustCertsFilePath(PulsarConfig.TLS_TRUST_CERTS_FILEPATH)
                     .authentication(tlsOrAthenzAuth)
                     .build();
@@ -168,6 +174,17 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         return clientBuilder.tlsTrustCertsFilePath(PulsarConfig.TLS_TRUST_CERTS_FILEPATH)
                 .authentication(tlsOrAthenzAuth)
                 .build();
+    }
+
+    /*
+     * Checking if already set by JNDI context, else take from config file else take default value
+     */
+    private String getUpdatedServiceUrl(){
+        if(SERVICE_URL == null){
+            SERVICE_URL = (PulsarConfig.SERVICE_URL == null)?DEFAULT_BROKER_URL:PulsarConfig.SERVICE_URL;
+        }
+
+        return SERVICE_URL;
     }
 
 }

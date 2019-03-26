@@ -144,7 +144,7 @@ public class PulsarJMSConsumer implements JMSConsumer {
     /*
      * Concurrently consume the pulsar message and return it back
      */
-    private class PulsarJMSConsumerThread implements Callable<PulsarMessage> sc{
+    private class PulsarJMSConsumerThread implements Callable<PulsarMessage> {
         private final long timeOut;
         private final TimeUnit timeUnit;
 

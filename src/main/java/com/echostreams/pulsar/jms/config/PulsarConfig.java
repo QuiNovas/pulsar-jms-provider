@@ -23,7 +23,7 @@ public class PulsarConfig {
      */
     // PulsarClient Connection
     public static String ENABLE_AUTH = ""; // empty-no auth, TLS-tls auth, ATHENZ-athenz auth
-    public static String SERVICE_URL = "pulsar://localhost:8080"; // or http://localhost:6650
+    public static String SERVICE_URL ;
     public static int OPERATION_TIMEOUT_MS = 30000;
     public static long STATS_INTERVAL_SECONDS = 60;
     public static int NUM_IO_THREADS = 1;
