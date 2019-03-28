@@ -3,6 +3,8 @@ package com.echostreams.pulsar.jms.client;
 import com.echostreams.pulsar.jms.config.PulsarConfig;
 import com.echostreams.pulsar.jms.config.PulsarConstants;
 import com.echostreams.pulsar.jms.exceptions.PulsarJMSException;
+import com.echostreams.pulsar.jms.jndi.JNDIStorable;
+import com.echostreams.pulsar.jms.utils.PropertyUtils;
 import org.apache.pulsar.client.api.*;
 import org.apache.pulsar.client.impl.auth.AuthenticationAthenz;
 import org.apache.pulsar.client.impl.auth.AuthenticationTls;
@@ -14,7 +16,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-public class PulsarConnectionFactory implements ConnectionFactory, QueueConnectionFactory, TopicConnectionFactory, Serializable {
+public class PulsarConnectionFactory extends JNDIStorable implements ConnectionFactory, QueueConnectionFactory, TopicConnectionFactory, Serializable {
     private static final Logger LOGGER = LoggerFactory.getLogger(PulsarConnectionFactory.class);
     private static final long serialVersionUID = 5725538819716172914L;
 
@@ -22,7 +24,6 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
     public static String DEFAULT_BROKER_PROP = "brokerUrl";
 
     private static String SERVICE_URL;
-
 
     public PulsarConnectionFactory() {
     }
@@ -179,12 +180,43 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
     /*
      * Checking if already set by JNDI context, else take from config file else take default value
      */
-    private String getUpdatedServiceUrl(){
-        if(SERVICE_URL == null){
-            SERVICE_URL = (PulsarConfig.SERVICE_URL == null)?DEFAULT_BROKER_URL:PulsarConfig.SERVICE_URL;
+    private String getUpdatedServiceUrl() {
+        if (SERVICE_URL == null) {
+            SERVICE_URL = (PulsarConfig.SERVICE_URL == null) ? DEFAULT_BROKER_URL : PulsarConfig.SERVICE_URL;
         }
 
         return SERVICE_URL;
+    }
+
+    /**
+     * Set the properties that will represent the instance in JNDI
+     *
+     * @param props The properties to use when building the new isntance.
+     * @return a new, unmodifiable, map containing any unused properties, or empty if none were.
+     */
+    @Override
+    protected Map<String, String> buildFromProperties(Map<String, String> props) {
+        String remoteURI = props.remove(DEFAULT_BROKER_PROP);
+        if (remoteURI != null) {
+            SERVICE_URL = remoteURI;
+        }
+
+        return PropertyUtils.setProperties(this, props);
+    }
+
+    /**
+     * Initialize the instance from properties stored in JNDI
+     *
+     * @param props The properties to use when initializing the new instance.
+     */
+    @Override
+    protected void populateProperties(Map<String, String> props) {
+        try {
+            Map<String, String> result = PropertyUtils.getProperties(this);
+            props.putAll(result);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }
