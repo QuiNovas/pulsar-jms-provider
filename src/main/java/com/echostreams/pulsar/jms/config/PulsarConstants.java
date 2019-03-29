@@ -5,6 +5,7 @@ public class PulsarConstants {
     //PULSAR AUTH
     public static final String TLS = "TLS";
     public static final String ATHENZ = "ATHENZ";
+    public static final String TOKEN = "TOKEN";
 
     // JNDI related constants
     //public static final String JNDI_CONTEXT_FACTORY = PulsarJMSInitialContextFactory.class.getName();

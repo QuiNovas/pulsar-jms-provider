@@ -23,7 +23,7 @@ public class PulsarConfig {
      */
     // PulsarClient Connection
     public static String ENABLE_AUTH = ""; // empty-no auth, TLS-tls auth, ATHENZ-athenz auth
-    public static String SERVICE_URL ;
+    public static String SERVICE_URL;
     public static int OPERATION_TIMEOUT_MS = 30000;
     public static long STATS_INTERVAL_SECONDS = 60;
     public static int NUM_IO_THREADS = 1;
@@ -51,6 +51,9 @@ public class PulsarConfig {
     public static String ATHENZ_PROVIDER_DOMAIN = "PULSAR";
     public static String ATHENZ_PRIVATE_KEY = "file:///path/to/private.pem";
     public static String ATHENZ_KEY_ID = "V1";    // optional, default is 0
+
+    //Token authentication config
+    public static String TOKEN_AUTH_PARAMS;
 
     public static synchronized void initializeConfig(String configFilePath) throws IOException {
         if (pulsarConfig == null) {
@@ -94,6 +97,7 @@ public class PulsarConfig {
         ATHENZ_PROVIDER_DOMAIN = properties.getProperty("pulsar.athenz.providerDomain");
         ATHENZ_PRIVATE_KEY = properties.getProperty("pulsar.athenz.privateKey");
         ATHENZ_KEY_ID = properties.getProperty("pulsar.athenz.keyId", "0");
+        TOKEN_AUTH_PARAMS = properties.getProperty("pulsar.authParams");
     }
 
     public void changeDefaultClientConfigFromConfigFile() {

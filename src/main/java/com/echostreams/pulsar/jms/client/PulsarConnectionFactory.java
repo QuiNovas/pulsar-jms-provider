@@ -10,7 +10,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -95,6 +100,10 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         if (PulsarConstants.ATHENZ.equals(PulsarConfig.ENABLE_AUTH)) {
             return new PulsarConnection(athenzAuthentication());
         }
+        if (PulsarConstants.TOKEN.equals(PulsarConfig.ENABLE_AUTH)) {
+            return new PulsarConnection(tokenBasedAuthentication());
+        }
+
         return new PulsarConnection(prepareClientWithoutAuth());
     }
 
@@ -105,10 +114,14 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         if (PulsarConstants.ATHENZ.equals(PulsarConfig.ENABLE_AUTH)) {
             return new PulsarJMSContext(athenzAuthentication());
         }
+        if (PulsarConstants.TOKEN.equals(PulsarConfig.ENABLE_AUTH)) {
+            return new PulsarJMSContext(tokenBasedAuthentication());
+        }
+
         return new PulsarJMSContext(prepareClientWithoutAuth());
     }
 
-    public PulsarClient tlsAuthentication() {
+    private PulsarClient tlsAuthentication() {
         LOGGER.info("Try Connecting to PulsarClient with TLS Auth");
         Map<String, String> authParams = new HashMap<>();
         authParams.put("tlsCertFile", PulsarConfig.TLS_CERT_FILE);
@@ -119,7 +132,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         try {
             tlsAuth = AuthenticationFactory
                     .create(AuthenticationTls.class.getName(), authParams);
-            client = prepareClient(tlsAuth);
+            client = prepareClientWithAuth(tlsAuth);
         } catch (PulsarClientException e) {
             new PulsarJMSException("TLS Authentication Error", e.getMessage());
         }
@@ -127,7 +140,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         return client;
     }
 
-    public PulsarClient athenzAuthentication() {
+    private PulsarClient athenzAuthentication() {
         LOGGER.info("Try Connecting to PulsarClient with Athenz Auth");
         Map<String, String> authParams = new HashMap<>();
         authParams.put("tenantDomain", PulsarConfig.ATHENZ_TENANT_DOMAIN); // Tenant domain name
@@ -141,11 +154,62 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         try {
             athenzAuth = AuthenticationFactory
                     .create(AuthenticationAthenz.class.getName(), authParams);
-            client = prepareClient(athenzAuth);
+            client = prepareClientWithAuth(athenzAuth);
         } catch (PulsarClientException e) {
             new PulsarJMSException("Athenz Authentication Error", e.getMessage());
         }
         return client;
+    }
+
+    private PulsarClient tokenBasedAuthentication() {
+        LOGGER.info("Try Connecting to PulsarClient with Token Auth");
+
+        ClientBuilder clientBuilder;
+        PulsarClient client = null;
+        try {
+            if (PulsarConfig.clientConfig == null) {
+                clientBuilder = PulsarClient.builder()
+                        .serviceUrl(getUpdatedServiceUrl());
+            } else {
+                clientBuilder = PulsarConfig.clientConfig;
+            }
+
+            if (PulsarConfig.TOKEN_AUTH_PARAMS.isEmpty()) {
+                throw new IllegalArgumentException("No token auth param found, check config! We must provide token value!");
+            }
+
+            // token value is directly passed
+            if (PulsarConfig.TOKEN_AUTH_PARAMS.startsWith("token:")) {
+                return clientBuilder
+                        .authentication(
+                                AuthenticationFactory.token(PulsarConfig.TOKEN_AUTH_PARAMS))
+                        .build();
+            }
+
+            // token value is passed into file
+            client = clientBuilder
+                    .authentication(
+                            AuthenticationFactory.token(() -> {
+                                // Read token from custom source
+                                return readTokenFromFile();
+                            }))
+                    .build();
+
+        } catch (PulsarClientException e) {
+            new PulsarJMSException("Token Authentication Error", e.getMessage());
+        }
+        return client;
+    }
+
+    private String readTokenFromFile() {
+        try {
+            if (new File(PulsarConfig.TOKEN_AUTH_PARAMS).isFile())
+                return new String(Files.readAllBytes(Paths.get(PulsarConfig.TOKEN_AUTH_PARAMS)));
+            else
+                throw new FileNotFoundException(PulsarConfig.TOKEN_AUTH_PARAMS + " doesn't exist or not valid file");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private PulsarClient prepareClientWithoutAuth() {
@@ -162,7 +226,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
         return client;
     }
 
-    private PulsarClient prepareClient(Authentication tlsOrAthenzAuth) throws PulsarClientException {
+    private PulsarClient prepareClientWithAuth(Authentication tlsOrAthenzAuth) throws PulsarClientException {
         if (PulsarConfig.clientConfig == null) {
             return PulsarClient.builder()
                     .serviceUrl(getUpdatedServiceUrl())
@@ -170,8 +234,7 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
                     .authentication(tlsOrAthenzAuth)
                     .build();
         }
-        ClientBuilder clientBuilder = PulsarConfig.clientConfig;
-        return clientBuilder.tlsTrustCertsFilePath(PulsarConfig.TLS_TRUST_CERTS_FILEPATH)
+        return PulsarConfig.clientConfig.tlsTrustCertsFilePath(PulsarConfig.TLS_TRUST_CERTS_FILEPATH)
                 .authentication(tlsOrAthenzAuth)
                 .build();
     }
@@ -179,9 +242,9 @@ public class PulsarConnectionFactory implements ConnectionFactory, QueueConnecti
     /*
      * Checking if already set by JNDI context, else take from config file else take default value
      */
-    private String getUpdatedServiceUrl(){
-        if(SERVICE_URL == null){
-            SERVICE_URL = (PulsarConfig.SERVICE_URL == null)?DEFAULT_BROKER_URL:PulsarConfig.SERVICE_URL;
+    private String getUpdatedServiceUrl() {
+        if (SERVICE_URL == null) {
+            SERVICE_URL = (PulsarConfig.SERVICE_URL == null) ? DEFAULT_BROKER_URL : PulsarConfig.SERVICE_URL;
         }
 
         return SERVICE_URL;
