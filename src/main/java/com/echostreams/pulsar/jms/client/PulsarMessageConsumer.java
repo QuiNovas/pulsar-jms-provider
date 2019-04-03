@@ -102,12 +102,12 @@ public class PulsarMessageConsumer implements MessageConsumer, QueueReceiver, To
 
     @Override
     public Queue getQueue() throws JMSException {
-        return null;
+        return (Queue) destination;
     }
 
     @Override
     public Topic getTopic() throws JMSException {
-        return null;
+        return (Topic) destination;
     }
 
     @Override
