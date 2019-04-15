@@ -1,6 +1,7 @@
 package com.echostreams.pulsar.jms.client;
 
 import com.echostreams.pulsar.jms.config.PulsarConfig;
+import com.echostreams.pulsar.jms.jmx.JMXInitializer;
 import com.echostreams.pulsar.jms.utils.DestinationUtils;
 import com.echostreams.pulsar.jms.utils.MessageUtils;
 import com.echostreams.pulsar.jms.utils.ObjectSerializer;
@@ -281,11 +282,25 @@ public class PulsarMessageProducer implements MessageProducer, QueueSender, Topi
             }
             msgId = producer.send(new ObjectSerializer().objectToByteArray(message));
             message.setJMSMessageID(msgId.toString());
+            prepareStats(destination);
         } catch (PulsarClientException e) {
             LOGGER.error("PulsarClientException during send : ", e);
         } finally {
             sendLock.unlock();
         }
         LOGGER.info("Published msg='{}' with msg-id={}", message, msgId);
+    }
+
+    private void prepareStats(Destination destination) {
+        JMXInitializer.initializeJMXAgent();
+        if (destination instanceof Queue) {
+            PulsarQueue pulsarQueue = (PulsarQueue) destination;
+            pulsarQueue.setTotalSentMessagesCount();
+            JMXInitializer.registerQueue(pulsarQueue);
+        } else if (destination instanceof Topic) {
+            PulsarTopic pulsarTopic = (PulsarTopic) destination;
+            pulsarTopic.setTotalSentMessagesCount();
+            JMXInitializer.registerTopic(pulsarTopic);
+        }
     }
 }

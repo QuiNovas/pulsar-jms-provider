@@ -197,7 +197,7 @@ public class PulsarMapMessage extends PulsarMessage implements MapMessage {
         checkWriteMode();
 
         if (payload == null)
-            payload = new HashMap<>();
+            payload = new HashMap<String, Object>();
 
         return payload.put(name, value);
     }

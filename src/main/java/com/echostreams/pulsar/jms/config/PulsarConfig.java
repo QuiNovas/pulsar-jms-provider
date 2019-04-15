@@ -4,6 +4,8 @@ import org.apache.pulsar.client.api.ClientBuilder;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.impl.ConsumerBuilderImpl;
 import org.apache.pulsar.client.impl.ProducerBuilderImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,6 +13,7 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 public class PulsarConfig {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PulsarConfig.class);
 
     public static PulsarConfig pulsarConfig;
     public Properties prop;
@@ -21,6 +24,7 @@ public class PulsarConfig {
     /*
      * PulsarClient Config
      */
+
     // PulsarClient Connection
     public static String ENABLE_AUTH = ""; // empty-no auth, TLS-tls auth, ATHENZ-athenz auth
     public static String SERVICE_URL;
@@ -55,21 +59,35 @@ public class PulsarConfig {
     //Token authentication config
     public static String TOKEN_AUTH_PARAMS;
 
-    public static synchronized void initializeConfig(String configFilePath) throws IOException {
+    // JMX Support;
+    public static String JMX_AGENT_ENABLED;
+    public static int JMX_JNDI_RMI_PORT;
+    public static String JMX_RMI_LISTEN_ADDR;
+
+    /**
+     * Load all property value from the given file.
+     *
+     * @param configFilePath
+     */
+    public static synchronized void initializeConfig(String configFilePath) {
         if (pulsarConfig == null) {
             pulsarConfig = new PulsarConfig(configFilePath);
         }
 
     }
 
-    public PulsarConfig(String configFilePath) throws IOException {
+    public PulsarConfig(String configFilePath) {
         prop = new Properties();
         InputStream inputStream;
-
-        inputStream = PulsarConfig.class.getResourceAsStream(configFilePath);
-        if (inputStream != null) {
-            prop.load(inputStream);
-            readPropertyValue(prop);
+        try {
+            inputStream = PulsarConfig.class.getResourceAsStream(configFilePath);
+            if (inputStream != null) {
+                prop.load(inputStream);
+                readPropertyValue(prop);
+            }
+        } catch (IOException e) {
+            LOGGER.error("Error while reading config file ", e);
+            System.exit(-1);
         }
     }
 
@@ -98,6 +116,9 @@ public class PulsarConfig {
         ATHENZ_PRIVATE_KEY = properties.getProperty("pulsar.athenz.privateKey");
         ATHENZ_KEY_ID = properties.getProperty("pulsar.athenz.keyId", "0");
         TOKEN_AUTH_PARAMS = properties.getProperty("pulsar.authParams");
+        JMX_AGENT_ENABLED = properties.getProperty("management.jmx.agent.enabled", "false");
+        JMX_JNDI_RMI_PORT = Integer.parseInt(properties.getProperty("management.jmx.agent.jndi.rmi.port", "10003"));
+        JMX_RMI_LISTEN_ADDR = properties.getProperty("management.jmx.agent.rmi.listenAddr", "0.0.0.0");
     }
 
     public void changeDefaultClientConfigFromConfigFile() {

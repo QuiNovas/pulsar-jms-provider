@@ -1,6 +1,7 @@
 package com.echostreams.pulsar.jms.client;
 
 import com.echostreams.pulsar.jms.config.PulsarConfig;
+import com.echostreams.pulsar.jms.jmx.JMXInitializer;
 import com.echostreams.pulsar.jms.message.PulsarMessage;
 import com.echostreams.pulsar.jms.utils.ObjectSerializer;
 import org.apache.pulsar.client.api.Consumer;
@@ -201,7 +202,21 @@ public class PulsarMessageConsumer implements MessageConsumer, QueueReceiver, To
             } catch (JMSException e) {
                 LOGGER.error("Exception during receiving message", e);
             }
+            prepareStats(destination);
             return pulsarMessage;
+        }
+    }
+
+    private void prepareStats(Destination destination) {
+        JMXInitializer.initializeJMXAgent();
+        if (destination instanceof Queue) {
+            PulsarQueue pulsarQueue = (PulsarQueue) destination;
+            pulsarQueue.setTotalReceivedMessagesCount();
+            JMXInitializer.registerQueue(pulsarQueue);
+        } else if (destination instanceof Topic) {
+            PulsarTopic pulsarTopic = (PulsarTopic) destination;
+            pulsarTopic.setTotalReceivedMessagesCount();
+            JMXInitializer.registerTopic(pulsarTopic);
         }
     }
 

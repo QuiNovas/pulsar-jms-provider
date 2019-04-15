@@ -18,4 +18,13 @@ public class PulsarConstants {
     public static final String OBJECT_MESSAGE = "ObjectMessage";
     public static final String STREAM_MESSAGE = "StreamMessage";
     public static final String BLOB_MESSAGE = "BlobMessage";
+
+    // JMX
+    public static final String JMX_LOCAL = "local";
+    public static final String JMX_HTML = "html";
+    public static final String JMX_RMI = "RMI";
+
+    // App related
+    public static final String APP_NAME = "PULSAR-JMS-PROVIDER";
+    public static final String DEFAULT_CONFIG_FILE = "/application.properties";
 }
