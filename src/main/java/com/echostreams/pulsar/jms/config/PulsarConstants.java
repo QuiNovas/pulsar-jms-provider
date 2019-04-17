@@ -1,5 +1,7 @@
 package com.echostreams.pulsar.jms.config;
 
+import com.echostreams.pulsar.jms.jndi.PulsarInitialContextFactory;
+
 public class PulsarConstants {
 
     //PULSAR AUTH
@@ -8,7 +10,7 @@ public class PulsarConstants {
     public static final String TOKEN = "TOKEN";
 
     // JNDI related constants
-    //public static final String JNDI_CONTEXT_FACTORY = PulsarJMSInitialContextFactory.class.getName();
+    public static final String JNDI_CONTEXT_FACTORY = PulsarInitialContextFactory.class.getName();
     public static final String JNDI_ENV_CLIENT_ID = "pulsar.naming.clientID";
 
     // Message Type
