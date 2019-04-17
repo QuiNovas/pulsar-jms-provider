@@ -1,9 +1,6 @@
 package com.echostreams.pulsar.jms.jndi;
 
-import javax.naming.CompositeName;
-import javax.naming.Name;
-import javax.naming.NameParser;
-import javax.naming.NamingException;
+import javax.naming.*;
 
 public class NameParserImpl implements NameParser {
     /**
