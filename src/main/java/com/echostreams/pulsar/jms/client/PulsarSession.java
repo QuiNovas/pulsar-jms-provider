@@ -133,7 +133,8 @@ public class PulsarSession implements Session, QueueSession, TopicSession {
         try {
             producer = new PulsarMessageProducer(destination, this);
         } catch (PulsarClientException e) {
-            LOGGER.error("Pulsar createProducer exception", e);
+            LOGGER.error("Error while creating Producer", e);
+            System.exit(-1);
         }
         return producer;
     }
