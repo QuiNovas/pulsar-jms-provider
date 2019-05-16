@@ -4,7 +4,7 @@ import com.echostreams.pulsar.jms.config.PulsarConstants;
 
 import javax.jms.*;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
@@ -471,7 +471,7 @@ public class PulsarBytesMessage extends PulsarMessage implements BytesMessage {
     @Override
     public String toString() {
         return "PulsarBytesMessage{" +
-                "payload=" + new String(payload, StandardCharsets.UTF_8) +
+                "payload=" + Arrays.toString(payload) +
                 ", input=" + input +
                 ", output=" + output +
                 ", byteInput=" + byteInput +

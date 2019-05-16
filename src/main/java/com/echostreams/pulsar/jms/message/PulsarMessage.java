@@ -11,7 +11,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class PulsarMessage implements Message, Serializable {
+public class PulsarMessage implements Message, Serializable {
 
     private static final long serialVersionUID = -1717904123537181827L;
 
@@ -22,6 +22,8 @@ public abstract class PulsarMessage implements Message, Serializable {
 
     public PulsarMessage() {
         super();
+        headers = new HashMap<>();
+        headers.put(PROPERTIES, new HashMap<String, Serializable>());
     }
 
     @PostConstruct
@@ -274,6 +276,25 @@ public abstract class PulsarMessage implements Message, Serializable {
     }
 
     @Override
+    public void clearBody() throws JMSException {
+        checkWriteMode();
+        readOnlyBody = false;
+    }
+
+    @Override
+    public <T> T getBody(Class<T> aClass) throws JMSException {
+        if (isBodyAssignableTo(aClass)) {
+            return doGetBody(aClass);
+        }
+
+        throw new MessageFormatException("Message body cannot be read as type: " + aClass);
+    }
+
+    protected <T> T doGetBody(Class<T> aClass) throws JMSException {
+        return null;
+    }
+
+    @Override
     public boolean isBodyAssignableTo(Class c) throws JMSException {
         return c.getName().equals(String.class.getName());
     }
@@ -290,4 +311,11 @@ public abstract class PulsarMessage implements Message, Serializable {
         }
     }
 
+    @Override
+    public String toString() {
+        return "PulsarMessage{" +
+                "headers=" + headers +
+                ", readOnlyBody=" + readOnlyBody +
+                '}';
+    }
 }

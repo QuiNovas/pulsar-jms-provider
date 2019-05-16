@@ -20,7 +20,7 @@ public class PulsarJMSProviderVersion {
     private static String PROVIDER_RELEASE_VERSION = "dev";
 
     // Supported JMS level
-    private static final int JMS_MAJOR_VERSION = 1;
+    private static final int JMS_MAJOR_VERSION = 2;
     private static final int JMS_MINOR_VERSION = 1;
 
     static {

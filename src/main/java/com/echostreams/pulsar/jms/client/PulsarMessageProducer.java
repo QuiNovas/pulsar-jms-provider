@@ -43,6 +43,9 @@ public class PulsarMessageProducer implements MessageProducer, QueueSender, Topi
 
     private final ReentrantLock sendLock = new ReentrantLock();
 
+    public PulsarMessageProducer() {
+
+    }
 
     /**
      * @param destination
