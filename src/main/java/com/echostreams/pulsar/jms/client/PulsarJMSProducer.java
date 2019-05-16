@@ -1,7 +1,7 @@
 package com.echostreams.pulsar.jms.client;
 
 import com.echostreams.pulsar.jms.config.PulsarConfig;
-import com.echostreams.pulsar.jms.exceptions.JMSExceptionSupport;
+import com.echostreams.pulsar.jms.exceptions.PulsarJMSException;
 import com.echostreams.pulsar.jms.utils.DestinationUtils;
 import com.echostreams.pulsar.jms.utils.MessageConverterUtils;
 import com.echostreams.pulsar.jms.utils.MessageUtils;
@@ -50,6 +50,9 @@ public class PulsarJMSProducer implements JMSProducer {
 
     private final ReentrantLock sendLock = new ReentrantLock();
 
+    public PulsarJMSProducer() {
+
+    }
 
     public PulsarJMSProducer(PulsarJMSContext jmsContext) throws PulsarClientException, JMSException {
         this.jmsContext = jmsContext;
@@ -66,7 +69,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             sendMessage(destination, message);
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -77,7 +80,7 @@ public class PulsarJMSProducer implements JMSProducer {
             TextMessage message = jmsContext.createTextMessage(body);
             sendMessage(destination, message);
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -91,7 +94,7 @@ public class PulsarJMSProducer implements JMSProducer {
             }
             sendMessage(destination, message);
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -103,7 +106,7 @@ public class PulsarJMSProducer implements JMSProducer {
             message.writeBytes(body);
             sendMessage(destination, message);
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -114,7 +117,7 @@ public class PulsarJMSProducer implements JMSProducer {
             ObjectMessage message = jmsContext.createObjectMessage(body);
             sendMessage(destination, message);
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -211,7 +214,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Boolean(value));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -221,7 +224,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Byte(value));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -231,7 +234,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Short(value));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -241,7 +244,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Integer(value));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -251,7 +254,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Long(value));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -261,7 +264,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Float(value));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -271,7 +274,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, new Double(value));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -281,7 +284,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, value);
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -291,7 +294,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             setPropertyInternal(name, value);
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }
@@ -313,7 +316,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             return MessageConverterUtils.convertToBoolean(getProperty(name));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
     }
 
@@ -322,7 +325,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             return MessageConverterUtils.convertToByte(getProperty(name));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
     }
 
@@ -331,7 +334,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             return MessageConverterUtils.convertToShort(getProperty(name));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
     }
 
@@ -340,7 +343,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             return MessageConverterUtils.convertToInt(getProperty(name));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
     }
 
@@ -349,7 +352,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             return MessageConverterUtils.convertToLong(getProperty(name));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
     }
 
@@ -358,7 +361,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             return MessageConverterUtils.convertToFloat(getProperty(name));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
     }
 
@@ -367,7 +370,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             return MessageConverterUtils.convertToDouble(getProperty(name));
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
     }
 
@@ -393,7 +396,7 @@ public class PulsarJMSProducer implements JMSProducer {
             this.setCorrelationId(MessageConverterUtils.decodeString(correlationId));
             return this;
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
     }
 
@@ -402,7 +405,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             return MessageConverterUtils.encodeString(this.getCorrelationId());
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
     }
 
@@ -433,7 +436,7 @@ public class PulsarJMSProducer implements JMSProducer {
         try {
             this.replyTo = DestinationUtils.transformDestination(replyTo);
         } catch (JMSException e) {
-            throw JMSExceptionSupport.createRuntimeException(e);
+            throw PulsarJMSException.createRuntimeException(e);
         }
         return this;
     }

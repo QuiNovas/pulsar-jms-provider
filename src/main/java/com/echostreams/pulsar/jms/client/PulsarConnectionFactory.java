@@ -110,16 +110,16 @@ public class PulsarConnectionFactory extends JNDIStorable implements ConnectionF
 
     private JMSContext createPulsarConnection(String userName, String password, int sessionMode) throws JMSException {
         if (PulsarConstants.TLS.equals(PulsarConfig.ENABLE_AUTH)) {
-            return new PulsarJMSContext(tlsAuthentication());
+            return new PulsarJMSContext(tlsAuthentication(), sessionMode);
         }
         if (PulsarConstants.ATHENZ.equals(PulsarConfig.ENABLE_AUTH)) {
-            return new PulsarJMSContext(athenzAuthentication());
+            return new PulsarJMSContext(athenzAuthentication(), sessionMode);
         }
         if (PulsarConstants.TOKEN.equals(PulsarConfig.ENABLE_AUTH)) {
-            return new PulsarJMSContext(tokenBasedAuthentication());
+            return new PulsarJMSContext(tokenBasedAuthentication(), sessionMode);
         }
 
-        return new PulsarJMSContext(prepareClientWithoutAuth());
+        return new PulsarJMSContext(prepareClientWithoutAuth(), sessionMode);
     }
 
     private PulsarClient tlsAuthentication() {

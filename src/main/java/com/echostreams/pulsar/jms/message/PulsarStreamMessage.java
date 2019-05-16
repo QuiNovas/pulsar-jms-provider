@@ -182,7 +182,7 @@ public class PulsarStreamMessage extends PulsarMessage implements StreamMessage 
         byte[] bytes = null;
         //copy array
         if (value != null) {
-            CommonUtils.copy(value);
+            bytes = CommonUtils.copy(value);
         }
 
         //set value

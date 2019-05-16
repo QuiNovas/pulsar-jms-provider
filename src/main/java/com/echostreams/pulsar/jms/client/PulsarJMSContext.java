@@ -20,14 +20,22 @@ public class PulsarJMSContext implements JMSContext {
     private MessageListener listener;
     private PulsarClient client;
     private Destination destination;
+    private int sessionMode;
 
-    public PulsarJMSContext(PulsarClient client) throws JMSException {
+    public PulsarJMSContext(PulsarClient client, int sessionMode) throws JMSException {
         this.client = client;
+        this.sessionMode = sessionMode;
     }
 
     @Override
-    public JMSContext createContext(int i) {
-        return null;
+    public JMSContext createContext(int sessionMode) {
+        PulsarJMSContext pulsarJMSContext = null;
+        try {
+            pulsarJMSContext = new PulsarJMSContext(client, sessionMode);
+        } catch (JMSException e) {
+            LOGGER.error(" Exception during createContext: ", e);
+        }
+        return pulsarJMSContext;
     }
 
     @Override
@@ -182,12 +190,12 @@ public class PulsarJMSContext implements JMSContext {
 
     @Override
     public boolean getTransacted() {
-        return false;
+        return (JMSContext.SESSION_TRANSACTED == sessionMode);
     }
 
     @Override
     public int getSessionMode() {
-        return 0;
+        return sessionMode;
     }
 
     @Override
