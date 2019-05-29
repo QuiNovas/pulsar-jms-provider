@@ -50,7 +50,7 @@ public class JMXInitializer {
     public static void registerQueue(PulsarQueue pulsarQueue) {
         try {
             if (jmxAgent != null)
-                jmxAgent.registerMBean(new ObjectName(pulsarQueue.getClass().getPackage().getName() + ":type=Queues,name=" + pulsarQueue.getName()), pulsarQueue);
+                jmxAgent.registerMBean(pulsarQueue, new ObjectName(pulsarQueue.getClass().getPackage().getName() + ":type=Queues,name=" + pulsarQueue.getName()));
         } catch (Exception e) {
             LOGGER.error("Cannot register queue on JMX agent", e);
         }
@@ -67,8 +67,9 @@ public class JMXInitializer {
 
     public static void registerTopic(PulsarTopic pulsarTopic) {
         try {
+            ObjectName pulsarTopicObject = new ObjectName(pulsarTopic.getClass().getPackage().getName() + ":type=Topics,name=" + pulsarTopic.getName());
             if (jmxAgent != null)
-                jmxAgent.registerMBean(new ObjectName(pulsarTopic.getClass().getPackage().getName() + ":type=Topics,name=" + pulsarTopic.getName()), pulsarTopic);
+                jmxAgent.registerMBean(pulsarTopic, pulsarTopicObject);
         } catch (Exception e) {
             LOGGER.error("Cannot register topic on JMX agent", e);
         }

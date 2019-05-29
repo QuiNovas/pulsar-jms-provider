@@ -28,14 +28,19 @@ public abstract class AbstractPulsarJMXAgent implements PulsarJMXAgent {
     }
 
     @Override
-    public void registerMBean(ObjectName name, Object mBean) throws JMSException {
+    public void registerMBean(Object mBean, ObjectName name) throws JMSException {
         LOGGER.debug("Registering object " + name);
         try {
             if (name == null)
                 throw new IllegalArgumentException("name may not be null!");
             if (mBean == null)
                 throw new IllegalArgumentException("mBean may not be null!");
-            this.mBeanServer.registerMBean(mBean, name);
+            if(this.mBeanServer.isRegistered(name)) {
+                this.mBeanServer.unregisterMBean(name);
+                this.mBeanServer.registerMBean(mBean, name);
+            } else {
+                this.mBeanServer.registerMBean(mBean, name);
+            }
         } catch (Exception e) {
             LOGGER.error("Cannot register MBean", "JMX_ERROR", e);
         }

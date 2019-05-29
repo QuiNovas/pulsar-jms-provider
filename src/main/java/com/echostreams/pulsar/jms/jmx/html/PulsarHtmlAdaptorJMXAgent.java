@@ -25,7 +25,7 @@ public class PulsarHtmlAdaptorJMXAgent extends AbstractPulsarJMXAgent {
         HtmlAdaptorServer adaptor = null;
         try {
             adapterName = new ObjectName("com.echostreams.pulsar.jms.jmx.html:name=PulsarHtmlAdaptorJMXAgent,port=" + port);
-            adaptor = new HtmlAdaptorServer();
+            adaptor = new HtmlAdaptorServer(port);
             mBeanServer.registerMBean(adaptor, adapterName);
         } catch (MalformedObjectNameException e) {
             LOGGER.error("Error while preparing for HtmlAdaptor JMX Agent", e);

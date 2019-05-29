@@ -5,7 +5,7 @@ import javax.management.ObjectName;
 
 public interface PulsarJMXAgent {
 
-    void registerMBean(ObjectName name, Object mBean) throws JMSException;
+    void registerMBean(Object mBean, ObjectName name) throws JMSException;
 
     void unregisterMBean(ObjectName name) throws JMSException;
 
